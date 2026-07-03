@@ -538,6 +538,28 @@ const getReducaoNBS = (nbs) => {
   );
 };
 
+// Resolve a redução efetiva de um item combinando o discriminador de substâncias
+// (NCM_SUBSTANCES_MAP) com a tabela direta de reduções (NCM_REDUCOES/NBS_REDUCOES).
+// Sem isso, NCMs ambíguos (capítulos 3002/3004) ficam presos em getReducaoNCM,
+// que retorna reducao:0 ("fiscalmente seguro") até serem confirmados — mesmo
+// quando o discriminador já sabe (por match literal ou decisão salva) que o
+// produto tem redução de 100%.
+const resolveReducaoEfetiva = (ncm, xProd, nbs, cached, competenciaAtual) => {
+  const n = (ncm || '').replace(/\D/g, '').padStart(8, '0');
+  const disc = discriminarNCM(n, xProd || '', cached, competenciaAtual);
+  let reduction = null;
+  if (disc.status === 'ENQUADRADO') {
+    if (disc.formaConfirmacao === 'ncm_direta') {
+      reduction = getReducaoNCM(ncm) || getReducaoNBS(nbs);
+    } else {
+      reduction = disc.reducao != null
+        ? { reducao: disc.reducao, tipo: disc.tipo, anexo: disc.anexo, desc: disc.substancia }
+        : (getReducaoNCM(ncm) || getReducaoNBS(nbs));
+    }
+  }
+  return { reduction, disc };
+};
+
 const STORAGE_KEY = 'creditos_ibs_cbs_v1';
 
 // â"€â"€â"€ CÃLCULOS â"€â"€â"€
@@ -652,7 +674,8 @@ const calculateReformImpact = (
   sellerRegime = 'simples', simplesRate = 0,
   buyerRegime = 'Desconhecido', ncm = '', nbs = '',
   impostoDestacado = null, isEntrada = false,
-  cfop = '', xProd = ''
+  cfop = '', xProd = '',
+  reducaoOverride = null
 ) => {
   const rules = REFORM_SCHEDULE[year];
   const icmsCurrentRate = getICMSRate(originUF, destUF);
@@ -685,7 +708,7 @@ const calculateReformImpact = (
     netValue = currentPrice - currentTaxesVal;
   }
 
-  const reducaoInfo = getReducaoNCM(ncm) || getReducaoNBS(nbs);
+  const reducaoInfo = reducaoOverride || (getReducaoNCM(ncm) || getReducaoNBS(nbs));
   const reducaoPerc = reducaoInfo ? reducaoInfo.reducao : 0;
   const fatorReducao = 1 - (reducaoPerc / 100);
 
@@ -1255,6 +1278,8 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState(0);
   const [selectedCompetence, setSelectedCompetence] = useState('TODAS');
+  const cnpj = currentUser?.licenseCNPJ;
+  const { getCached: getCachedReform } = useNcmDecisoes(cnpj);
 
   const competenceIndex = useMemo(() => {
     const idx = new Map();
@@ -1533,6 +1558,8 @@ const impostoUnit = item.impostoDestacado?.temDados
     }
   : (item.impostoDestacado || null);
 
+const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
+const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedReform(cnpj, ncmNorm, item.prodNome || '', null), null);
 const impact = calculateReformImpact(
   calcUnit, reformYear, originState, destState,
   sellerRegimeNorm, simplesRate,
@@ -1540,7 +1567,7 @@ const impact = calculateReformImpact(
   item.prodNCM || '', item.prodNBS || '',
   impostoUnit,
   isEntrada,
-  item.prodCFOP || ''
+  item.prodCFOP || '', item.prodNome || '', reduction
 );
                                 const isItemExp = expandedInvoiceItem === `${invoice.nNF}-${iIdx}`;
                                 return (
@@ -1732,7 +1759,7 @@ const impact = calculateReformImpact(
       ) : (
        subTab === 'conferencia'
          ? <ConferenciaNCMTab saidasData={saidasData} entradasData={entradasData} cnpj={currentUser?.licenseCNPJ} usuario={currentUser?.name || currentUser?.username || 'desconhecido'}/>
-         : <ReductionInsightsTab saidasData={saidasData} entradasData={entradasData} simplesRate={simplesRate} reformYear={reformYear} empresaRegime={empresaRegime}/>
+         : <ReductionInsightsTab saidasData={saidasData} entradasData={entradasData} simplesRate={simplesRate} reformYear={reformYear} empresaRegime={empresaRegime} cnpj={currentUser?.licenseCNPJ}/>
       )}
     </div>
   );
@@ -2871,10 +2898,11 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => 
 
 const NCM_CONFIRMACOES_KEY = 'ncm_confirmacoes_v1';
 
-const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, reformYear, empresaRegime }) => {
+const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, reformYear, empresaRegime, cnpj }) => {
   const [flow, setFlow] = useState('saidas');
   const [modalTier, setModalTier] = useState(null); // null | 'zero' | 'reduced' | 'full'
   const [modalComp, setModalComp] = useState('TODAS');
+  const { getCached } = useNcmDecisoes(cnpj);
 
   const fBRL = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -2899,17 +2927,8 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
       const ncm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0') || 'SEM_NCM';
       if (!mapa[ncm]) {
         const xProd = item.prodNome || '';
-        const disc = discriminarNCM(ncm, xProd);
-        let reduction = null;
-        if (disc.status === 'ENQUADRADO') {
-          if (disc.formaConfirmacao === 'ncm_direta') {
-            reduction = getReducaoNCM(item.prodNCM) || getReducaoNBS(item.prodNBS);
-          } else {
-            reduction = disc.reducao != null
-              ? { reducao: disc.reducao, tipo: disc.tipo, anexo: disc.anexo, desc: disc.substancia }
-              : (getReducaoNCM(item.prodNCM) || getReducaoNBS(item.prodNBS));
-          }
-        }
+        const cached = getCached(cnpj, ncm, xProd, null);
+        const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null);
         mapa[ncm] = {
           ncm, ncmDisplay: item.prodNCM || 'S/NCM', nome: xProd || '-',
           faturamento: 0,
@@ -2923,7 +2942,7 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
       mapa[ncm].faturamento += item.prodValTotal || 0;
     });
     return Object.values(mapa).sort((a, b) => b.faturamento - a.faturamento);
-  }, [currentData]);
+  }, [currentData, getCached, cnpj]);
 
   const totalFat = useMemo(() => ncmGroups.reduce((a, g) => a + g.faturamento, 0), [ncmGroups]);
 
@@ -2959,17 +2978,8 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
       const ncm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0') || 'SEM_NCM';
       if (!mapa[ncm]) {
         const xProd = item.prodNome || '';
-        const disc = discriminarNCM(ncm, xProd);
-        let reduction = null;
-        if (disc.status === 'ENQUADRADO') {
-          if (disc.formaConfirmacao === 'ncm_direta') {
-            reduction = getReducaoNCM(item.prodNCM) || getReducaoNBS(item.prodNBS);
-          } else {
-            reduction = disc.reducao != null
-              ? { reducao: disc.reducao, tipo: disc.tipo, anexo: disc.anexo, desc: disc.substancia }
-              : (getReducaoNCM(item.prodNCM) || getReducaoNBS(item.prodNBS));
-          }
-        }
+        const cached = getCached(cnpj, ncm, xProd, null);
+        const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null);
         mapa[ncm] = {
           ncm, ncmDisplay: item.prodNCM || 'S/NCM', nome: xProd || '-',
           faturamento: 0,
@@ -2986,7 +2996,7 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
     if (modalTier === 'zero')    return all.filter(g => (g.reduction?.reducao || 0) === 100);
     if (modalTier === 'reduced') return all.filter(g => (g.reduction?.reducao || 0) > 0 && (g.reduction?.reducao || 0) < 100);
     return all.filter(g => (g.reduction?.reducao || 0) === 0);
-  }, [modalTier, modalComp, currentData]);
+  }, [modalTier, modalComp, currentData, getCached, cnpj]);
 
   const modalTotalFat = modalGroups.reduce((a, g) => a + g.faturamento, 0);
 
@@ -3135,33 +3145,41 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: APURAÇÃƒO
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYear }) => {
+const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYear, cnpj }) => {
   const rules = REFORM_SCHEDULE[reformYear] || { cbs: 0, ibs: 0 };
   const [filtroReducao, setFiltroReducao] = useState('TODAS'); // 'TODAS' | '0' | '60' | '100'
+  const [filtroFluxoResumo, setFiltroFluxoResumo] = useState('TODOS'); // 'TODOS' | 'saida' | 'entrada'
+  const { getCached } = useNcmDecisoes(cnpj);
 
   // â"€â"€ Categoriza cada item de saída com seu impacto e % de redução â"€â"€
+  // Usa o discriminador de substâncias para resolver NCMs ambíguos (ex: cap.
+  // 3002/3004) antes de calcular CBS/IBS — sem isso, produtos com redução de
+  // 100% confirmada (por match literal ou decisão salva na fila de revisão)
+  // caem na alíquota cheia por padrão.
   const itensSaida = useMemo(() => saidasData.map(item => {
+    const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0'), item.prodNome || '', null), null);
     const impact = calculateReformImpact(
       item.prodValTotal, reformYear,
       item.emitUF || 'RJ', item.peerUF || 'RJ',
       'normal', 0, 'Regime Normal', item.prodNCM, item.prodNBS || '', null, false,
-      item.prodCFOP || ''
+      item.prodCFOP || '', item.prodNome || '', reduction
     );
     return { ...item, impact, reducaoPerc: impact.reducaoPerc || 0 };
-  }), [saidasData, reformYear]);
+  }), [saidasData, reformYear, getCached, cnpj]);
 
   // â"€â"€ Categoriza cada item de entrada com seu impacto e % de redução â"€â"€
   const itensEntrada = useMemo(() => entradasData.map(item => {
     const peerRegime = item.impostoDestacado?.temDados ? 'normal' : 'simples';
+    const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0'), item.prodNome || '', null), null);
     const impact = calculateReformImpact(
       item.prodValTotal, reformYear,
       item.peerUF || 'RJ', item.emitUF || 'RJ',
       peerRegime, 0, 'Regime Normal',
       item.prodNCM, item.prodNBS || '', item.impostoDestacado || null, true,
-      item.prodCFOP || ''
+      item.prodCFOP || '', item.prodNome || '', reduction
     );
     return { ...item, impact, reducaoPerc: impact.reducaoPerc || 0 };
-  }), [entradasData, reformYear]);
+  }), [entradasData, reformYear, getCached, cnpj]);
 
  // â"€â"€ Filtra conforme seleção â"€â"€ (memoizado para referência estável)
 const reducaoNumero = useMemo(() =>
@@ -3348,7 +3366,7 @@ const creditos = useMemo(() => {
             ...saidasFiltradas.map(i => ({ ...i, _fluxo: 'Saída' })),
             ...entradasFiltradas.map(i => ({ ...i, _fluxo: 'Entrada' }))
           ].map((item, idx) => {
-            const reducaoInfo = getReducaoNCM(item.prodNCM);
+            const reducaoInfo = item.impact?.reducaoInfo;
             return (
               <tr key={idx} className="hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-3 font-medium text-slate-700 max-w-xs truncate" title={item.prodNome}>
@@ -3462,8 +3480,22 @@ const creditos = useMemo(() => {
       {/* â"€â"€ Tabela comparativa por categoria (só na visão TODAS) â"€â"€ */}
       {filtroReducao === 'TODAS' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-xs uppercase flex items-center gap-2">
-            <Scale className="w-4 h-4"/> Resumo por Categoria de Alíquota
+          <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div className="font-bold text-slate-700 text-xs uppercase flex items-center gap-2">
+              <Scale className="w-4 h-4"/> Resumo por Categoria de Alíquota
+            </div>
+            <div className="flex bg-white p-1 rounded-lg border border-slate-200">
+              {[
+                { id: 'TODOS',   label: 'Saídas + Entradas' },
+                { id: 'saida',   label: 'Somente Saídas' },
+                { id: 'entrada', label: 'Somente Entradas' },
+              ].map(f => (
+                <button key={f.id} onClick={() => setFiltroFluxoResumo(f.id)}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${filtroFluxoResumo === f.id ? 'bg-[#111827] text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
           <table className="w-full text-sm text-left">
             <thead className="bg-white text-slate-500 uppercase text-xs font-bold sticky top-0">
@@ -3471,9 +3503,9 @@ const creditos = useMemo(() => {
                 <th className="px-5 py-3 border-b border-slate-100">Categoria</th>
                 <th className="px-5 py-3 border-b border-slate-100 text-center">Itens</th>
                 <th className="px-5 py-3 border-b border-slate-100 text-right text-slate-600">Faturamento Total</th>
-                <th className="px-5 py-3 border-b border-slate-100 text-right text-red-600">Débito CBS+IBS</th>
-                <th className="px-5 py-3 border-b border-slate-100 text-right text-emerald-600">Crédito CBS+IBS</th>
-                <th className="px-5 py-3 border-b border-slate-100 text-right text-slate-700">Saldo</th>
+                {filtroFluxoResumo !== 'entrada' && <th className="px-5 py-3 border-b border-slate-100 text-right text-red-600">Débito CBS+IBS</th>}
+                {filtroFluxoResumo !== 'saida' && <th className="px-5 py-3 border-b border-slate-100 text-right text-emerald-600">Crédito CBS+IBS</th>}
+                {filtroFluxoResumo === 'TODOS' && <th className="px-5 py-3 border-b border-slate-100 text-right text-slate-700">Saldo</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -3482,8 +3514,8 @@ const creditos = useMemo(() => {
                 { label: 'Redução 60% (LC 214/2025)',    perc: 60, dotColor: 'bg-[#111827]' },
                 { label: 'Alíquota Zero / Isenção 100%', perc: 100, dotColor: 'bg-emerald-500' },
               ].map(({ label, perc, dotColor }) => {
-                const saidaFilt   = itensSaida.filter(i => i.reducaoPerc === perc);
-                const entradaFilt = itensEntrada.filter(i => i.reducaoPerc === perc);
+                const saidaFilt   = filtroFluxoResumo === 'entrada' ? [] : itensSaida.filter(i => i.reducaoPerc === perc);
+                const entradaFilt = filtroFluxoResumo === 'saida'   ? [] : itensEntrada.filter(i => i.reducaoPerc === perc);
                 const deb  = saidaFilt.reduce((a, i) => a + i.impact.taxes.cbs + i.impact.taxes.ibs, 0);
                 const cred = entradaFilt.reduce((a, i) => a + i.impact.taxes.cbs + i.impact.taxes.ibs, 0);
                 const sal  = deb - cred;
@@ -3502,12 +3534,14 @@ const creditos = useMemo(() => {
                     <td className="px-5 py-3 text-right text-slate-600 font-semibold">
                       R$ {fat.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td className="px-5 py-3 text-right font-bold text-red-600">R$ {deb.toFixed(2)}</td>
-                    <td className="px-5 py-3 text-right font-bold text-emerald-600">R$ {cred.toFixed(2)}</td>
-                    <td className={`px-5 py-3 text-right font-black ${sal > 0 ? 'text-slate-700' : 'text-blue-600'}`}>
-                      R$ {Math.abs(sal).toFixed(2)}
-                      <span className="text-[9px] font-normal ml-1">{sal > 0 ? 'a pagar' : 'a recuperar'}</span>
-                    </td>
+                    {filtroFluxoResumo !== 'entrada' && <td className="px-5 py-3 text-right font-bold text-red-600">R$ {deb.toFixed(2)}</td>}
+                    {filtroFluxoResumo !== 'saida' && <td className="px-5 py-3 text-right font-bold text-emerald-600">R$ {cred.toFixed(2)}</td>}
+                    {filtroFluxoResumo === 'TODOS' && (
+                      <td className={`px-5 py-3 text-right font-black ${sal > 0 ? 'text-slate-700' : 'text-blue-600'}`}>
+                        R$ {Math.abs(sal).toFixed(2)}
+                        <span className="text-[9px] font-normal ml-1">{sal > 0 ? 'a pagar' : 'a recuperar'}</span>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -3599,8 +3633,9 @@ const creditos = useMemo(() => {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: PAINEL INTELIGENTE
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxaOculta, setTaxaOculta, empresaRegime, setEmpresaRegime, reformYear, onGerarDemo, isBatchProcessing }) => {
+const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxaOculta, setTaxaOculta, empresaRegime, setEmpresaRegime, reformYear, onGerarDemo, isBatchProcessing, cnpj }) => {
   const rules = REFORM_SCHEDULE[reformYear] || { cbs: 0, ibs: 0 };
+  const { getCached } = useNcmDecisoes(cnpj);
   const kpis = useMemo(() => {
     const receitaXML = saidasData.reduce((acc, curr) => acc + curr.prodValTotal, 0);
     const receitaReal = taxaOculta < 100 ? receitaXML / (1 - (taxaOculta / 100)) : receitaXML;
@@ -3612,7 +3647,9 @@ const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxa
     if (empresaRegime === 'normal') {
       saidasData.forEach(item => {
         // Saída: Origem é o emitente, Destino é o peer
-        const impact = calculateReformImpact(item.prodValTotal, reformYear, item.emitUF || 'RJ', item.peerUF || 'RJ', 'normal', 0, 'Regime Normal', item.prodNCM, item.prodNBS || '', null, false, item.prodCFOP || '');
+        const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
+        const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, ncmNorm, item.prodNome || '', null), null);
+        const impact = calculateReformImpact(item.prodValTotal, reformYear, item.emitUF || 'RJ', item.peerUF || 'RJ', 'normal', 0, 'Regime Normal', item.prodNCM, item.prodNBS || '', null, false, item.prodCFOP || '', item.prodNome || '', reduction);
         ibsCbsDebito += impact.taxes.cbs + impact.taxes.ibs;
       });
     }
@@ -3628,7 +3665,7 @@ const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxa
     saidasData.forEach(item => { if (!produtosMap[item.prodNome]) produtosMap[item.prodNome] = { nome: item.prodNome, unit: item.prodUnit, price: item.prodValUnit, rev: 0 }; produtosMap[item.prodNome].rev += item.prodValTotal; });
     const premiumProducts = Object.values(produtosMap).sort((a, b) => b.price - a.price).slice(0, 5);
     return { receitaXML, receitaReal, valorOculto, cmv, das, lucroBruto, topCliente, concentracaoTop1, premiumProducts, pagamentosArr, ibsCbsSimples };
-  }, [saidasData, entradasData, simplesRate, taxaOculta, empresaRegime, reformYear, rules]);
+  }, [saidasData, entradasData, simplesRate, taxaOculta, empresaRegime, reformYear, rules, getCached, cnpj]);
 
   const fmtBRL = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const fmtPct = (v) => `${(v || 0).toFixed(1)}%`;
@@ -3756,7 +3793,9 @@ const SimplesNacionalTab = ({
   segmentos, setSegmentos,
   autoDetectSeg, setAutoDetectSeg,
   simplesRate = 0,
+  cnpj,
 }) => {
+  const { getCached: getCachedSimples } = useNcmDecisoes(cnpj);
 
 const CFOPS_ST = new Set([
   // â"€â"€â"€ Intraestadual (5400s) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -3852,12 +3891,16 @@ const CFOPS_ST = new Set([
     const rules = REFORM_SCHEDULE[reformYear] || { cbs:0, ibs:0 };
     let dCbs=0, dIbs=0, cCbs=0, cIbs=0;
     saidasData.forEach(item => {
-      const imp = calculateReformImpact(item.prodValTotal, reformYear, item.emitUF||'RJ', item.peerUF||'RJ', 'normal', 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', null, false, item.prodCFOP||'');
+      const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
+      const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedSimples(cnpj, ncmNorm, item.prodNome || '', null), null);
+      const imp = calculateReformImpact(item.prodValTotal, reformYear, item.emitUF||'RJ', item.peerUF||'RJ', 'normal', 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', null, false, item.prodCFOP||'', item.prodNome||'', reduction);
       dCbs += imp.taxes.cbs; dIbs += imp.taxes.ibs;
     });
     entradasData.forEach(item => {
       const regime = item.impostoDestacado?.temDados ? 'normal' : 'simples';
-      const imp = calculateReformImpact(item.prodValTotal, reformYear, item.peerUF||'RJ', item.emitUF||'RJ', regime, 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', item.impostoDestacado||null, true, item.prodCFOP||'');
+      const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
+      const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedSimples(cnpj, ncmNorm, item.prodNome || '', null), null);
+      const imp = calculateReformImpact(item.prodValTotal, reformYear, item.peerUF||'RJ', item.emitUF||'RJ', regime, 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', item.impostoDestacado||null, true, item.prodCFOP||'', item.prodNome||'', reduction);
       cCbs += imp.taxes.cbs; cIbs += imp.taxes.ibs;
     });
     const REDS = { alugueis:0.30, servicos:0.70 };
@@ -3868,7 +3911,7 @@ const CFOPS_ST = new Set([
     });
     const saldoTotal = (dCbs - cCbs) + (dIbs - cIbs);
     return { debito:{cbs:dCbs,ibs:dIbs}, credito:{cbs:cCbs,ibs:cIbs}, saldo:{cbs:dCbs-cCbs,ibs:dIbs-cIbs}, total:saldoTotal };
-  }, [saidasData, entradasData, creditosManuais, reformYear]);
+  }, [saidasData, entradasData, creditosManuais, reformYear, getCachedSimples, cnpj]);
 
   // Cálculo principal
   const resultado = useMemo(() => {
@@ -4730,6 +4773,7 @@ const CFOPS_ST = new Set([
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const TaxAnalyzer = () => {
  const [currentUser, setCurrentUser] = useState(null);
+  const { getCached: getCachedNcmDecisao } = useNcmDecisoes(currentUser?.licenseCNPJ);
   const [showSplash, setShowSplash] = useState(false);
   const [loginForm, setLoginForm] = useState({ cnpj: '', regime: 'simples', aliquota: '' });
   const [activeModule, setActiveModule] = useState('visaogeral');
@@ -5556,37 +5600,34 @@ const exportarRelatorioFiscal = async () => {
   const cnpj = currentUser.licenseCNPJ || 'N/I';
   const rules = REFORM_SCHEDULE[reformYear] || { cbs: 0, ibs: 0 };
 
-  const calcImp = (item, isEntrada) => {
-  const regime = isEntrada ? (item.impostoDestacado?.temDados ? 'normal' : 'simples') : 'normal';
-  const orig = isEntrada ? (item.peerUF||'RJ') : (item.emitUF||'RJ');
-  const dest = isEntrada ? (item.emitUF||'RJ') : (item.peerUF||'RJ');
-  // saídas: null (igual ao ApuracaoTab) | entradas: imposto real
-  const imposto = isEntrada ? (item.impostoDestacado||null) : null;
-  return calculateReformImpact(item.prodValTotal, reformYear, orig, dest, regime, 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', imposto, isEntrada, item.prodCFOP||'');
-};
-
-  const addDiscInfo = (item) => {
+  // Resolve a redução via discriminador (mesma lógica do ApuracaoTab/ReductionInsightsTab)
+  // e usa o resultado tanto para o cálculo de CBS/IBS quanto para o rótulo da
+  // categoria — evita que o Excel mostre um item em "Alíquota Zero" com débito
+  // calculado pela alíquota cheia (ou vice-versa).
+  const resolverItem = (item, isEntrada) => {
+    const xProd = item.prodNome || '';
     const ncm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
-    const disc = discriminarNCM(ncm, item.prodNome || '');
-    let red = 0;
-    if (disc.status === 'ENQUADRADO') {
-      if (disc.formaConfirmacao === 'ncm_direta') {
-        red = getReducaoNCM(item.prodNCM)?.reducao || 0;
-      } else {
-        red = disc.reducao ?? getReducaoNCM(item.prodNCM)?.reducao ?? 0;
-      }
-    }
-    // CONFERIR e FORA_DO_ANEXO: red permanece 0 (benefício não aplicado)
+    const cached = getCachedNcmDecisao(cnpj, ncm, xProd, null);
+    const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null);
+
+    const regime = isEntrada ? (item.impostoDestacado?.temDados ? 'normal' : 'simples') : 'normal';
+    const orig = isEntrada ? (item.peerUF||'RJ') : (item.emitUF||'RJ');
+    const dest = isEntrada ? (item.emitUF||'RJ') : (item.peerUF||'RJ');
+    // saídas: null (igual ao ApuracaoTab) | entradas: imposto real
+    const imposto = isEntrada ? (item.impostoDestacado||null) : null;
+    const imp = calculateReformImpact(item.prodValTotal, reformYear, orig, dest, regime, 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', imposto, isEntrada, item.prodCFOP||'', xProd, reduction);
+
     return {
+      imp,
+      red: reduction?.reducao || 0,
       statusNCM: disc.status,
       substancia: disc.substancia || '',
       fundamentacao: disc.fundamentacao || '',
       formaConfirmacao: disc.formaConfirmacao || '',
-      red,
     };
   };
-  const iS = saidasFiltradas.map(i  => { const d = addDiscInfo(i); return { ...i, imp: calcImp(i,false), red: d.red, statusNCM: d.statusNCM, substancia: d.substancia, fundamentacao: d.fundamentacao, formaConfirmacao: d.formaConfirmacao }; });
-  const iE = entradasFiltradas.map(i => { const d = addDiscInfo(i); return { ...i, imp: calcImp(i,true),  red: d.red, statusNCM: d.statusNCM, substancia: d.substancia, fundamentacao: d.fundamentacao, formaConfirmacao: d.formaConfirmacao }; });
+  const iS = saidasFiltradas.map(i  => ({ ...i, ...resolverItem(i, false) }));
+  const iE = entradasFiltradas.map(i => ({ ...i, ...resolverItem(i, true) }));
 
   const debCbs = iS.reduce((a,i)=>a+(i.imp.taxes.cbs||0),0);
   const debIbs = iS.reduce((a,i)=>a+(i.imp.taxes.ibs||0),0);
@@ -6160,7 +6201,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
 </div>
 
 {apuracaoSubTab === 'apuracao' ? (
-  <ApuracaoTab saidasData={saidasParaApuracao} entradasData={entradasParaCMV} creditosManuais={creditosManuais} reformYear={reformYear} simplesRate={simplesRate}/>
+  <ApuracaoTab saidasData={saidasParaApuracao} entradasData={entradasParaCMV} creditosManuais={creditosManuais} reformYear={reformYear} simplesRate={simplesRate} cnpj={currentUser?.licenseCNPJ}/>
 ) : (
   <CreditosTab reformYear={reformYear}/>
 )}
@@ -6210,6 +6251,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   autoDetectSeg={simplesAutoDetectSeg}
   setAutoDetectSeg={setSimplesAutoDetectSeg}
   simplesRate={simplesRate}
+  cnpj={currentUser?.licenseCNPJ}
 />
           </div>
         )}
