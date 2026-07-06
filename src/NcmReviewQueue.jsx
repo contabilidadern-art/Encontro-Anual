@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { db } from './firebase';
 import { collection, query, where, getDocs, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import { ANEXO_FINS } from './ncmDiscriminator';
@@ -8,19 +8,10 @@ export function useNcmDecisoes(cnpj) {
   const [cache, setCache] = useState(new Map());
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!cnpj) return;
-    setLoading(true);
-    const q = query(collection(db, 'ncmDecisoes'), where('cnpj', '==', cnpj));
-    getDocs(q)
-      .then(snap => {
-        const m = new Map();
-        snap.forEach(d => { m.set(d.id, d.data()); });
-        setCache(m);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [cnpj]);
+  // Consulta ao Firestore desativada (cota diária do projeto excedida).
+  // O cache simplesmente começa vazio; decisões tomadas nesta sessão continuam
+  // sendo salvas normalmente (saveDecision) e ficam disponíveis via getCached
+  // enquanto a página não for recarregada.
 
   // Salva decisão com trilha de auditoria completa
   const saveDecision = useCallback(async ({
