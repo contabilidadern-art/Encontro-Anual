@@ -93,7 +93,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo4: {
-      nome: 'Anexo IV — Serviços Â§5ÂºC (sem CPP)',
+      nome: 'Anexo IV — Serviços §5ºC (sem CPP)',
       tributos: ['IRPJ','CSLL','CBS','ISS','IBS'],
       obs: '⚠ CPP recolhido separadamente — não incluso no DAS.',
       faixas: [
@@ -106,7 +106,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo5: {
-      nome: 'Anexo V — Serviços Â§5ÂºI (Fator R)',
+      nome: 'Anexo V — Serviços §5ºI (Fator R)',
       tributos: ['IRPJ','CSLL','CBS','CPP','ISS','IBS'],
       obs: '⚠ Se Fator r ≥ 28%, tributar pelo Anexo III.',
       faixas: [
@@ -162,7 +162,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo4: {
-      nome: 'Anexo IV — Serviços Â§5ÂºC (sem CPP)',
+      nome: 'Anexo IV — Serviços §5ºC (sem CPP)',
       tributos: ['IRPJ','CSLL','CBS','ISS','IBS'],
       obs: '⚠ CPP recolhido separadamente — não incluso no DAS.',
       faixas: [
@@ -175,7 +175,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo5: {
-      nome: 'Anexo V — Serviços Â§5ÂºI (Fator R)',
+      nome: 'Anexo V — Serviços §5ºI (Fator R)',
       tributos: ['IRPJ','CSLL','CBS','CPP','ISS','IBS'],
       obs: '⚠ Se Fator r ≥ 28%, tributar pelo Anexo III.',
       faixas: [
@@ -231,7 +231,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo4: {
-      nome: 'Anexo IV — Serviços Â§5ÂºC (sem CPP)',
+      nome: 'Anexo IV — Serviços §5ºC (sem CPP)',
       tributos: ['IRPJ','CSLL','CBS','ISS','IBS'],
       obs: '⚠ CPP recolhido separadamente — não incluso no DAS.',
       faixas: [
@@ -244,7 +244,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo5: {
-      nome: 'Anexo V — Serviços Â§5ÂºI (Fator R)',
+      nome: 'Anexo V — Serviços §5ºI (Fator R)',
       tributos: ['IRPJ','CSLL','CBS','CPP','ISS','IBS'],
       obs: '⚠ Se Fator r ≥ 28%, tributar pelo Anexo III.',
       faixas: [
@@ -300,7 +300,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo4: {
-      nome: 'Anexo IV — Serviços Â§5ÂºC (sem CPP)',
+      nome: 'Anexo IV — Serviços §5ºC (sem CPP)',
       tributos: ['IRPJ','CSLL','CBS','ISS','IBS'],
       obs: '⚠ CPP recolhido separadamente — não incluso no DAS.',
       faixas: [
@@ -313,7 +313,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo5: {
-      nome: 'Anexo V — Serviços Â§5ÂºI (Fator R)',
+      nome: 'Anexo V — Serviços §5ºI (Fator R)',
       tributos: ['IRPJ','CSLL','CBS','CPP','ISS','IBS'],
       obs: '⚠ Se Fator r ≥ 28%, tributar pelo Anexo III.',
       faixas: [
@@ -369,7 +369,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo4: {
-      nome: 'Anexo IV — Serviços Â§5ÂºC (sem CPP)',
+      nome: 'Anexo IV — Serviços §5ºC (sem CPP)',
       tributos: ['IRPJ','CSLL','CBS','ISS','IBS'],
       obs: '⚠ CPP recolhido separadamente — não incluso no DAS.',
       faixas: [
@@ -382,7 +382,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo5: {
-      nome: 'Anexo V — Serviços Â§5ÂºI (Fator R)',
+      nome: 'Anexo V — Serviços §5ºI (Fator R)',
       tributos: ['IRPJ','CSLL','CBS','CPP','ISS','IBS'],
       obs: '⚠ Se Fator r ≥ 28%, tributar pelo Anexo III.',
       faixas: [
@@ -437,7 +437,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo4: {
-      nome: 'Anexo IV — Serviços Â§5ÂºC (sem CPP)',
+      nome: 'Anexo IV — Serviços §5ºC (sem CPP)',
       tributos: ['IRPJ','CSLL','CBS','IBS'],
       obs: '⚠ CPP recolhido separadamente — não incluso no DAS.',
       faixas: [
@@ -450,7 +450,7 @@ const SIMPLES_DB = {
       ],
     },
     anexo5: {
-      nome: 'Anexo V — Serviços Â§5ÂºI (Fator R)',
+      nome: 'Anexo V — Serviços §5ºI (Fator R)',
       tributos: ['IRPJ','CSLL','CBS','CPP','IBS'],
       obs: '⚠ Se Fator r ≥ 28%, tributar pelo Anexo III.',
       faixas: [
@@ -619,7 +619,7 @@ const isCFOPCompra = (cfop) => {
 // CFOPs que não geram incidência de CBS/IBS e não representam compra/venda real
 // Série 5xxx/6xxx = saídas (remessa)  |  Série 1xxx/2xxx = entradas (retorno/recebimento)
 const CFOPS_SEM_INCIDENCIA = new Set([
-  // â"€â"€ SAÃDAS (5xxx/6xxx) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // â"€â"€ SAÍDAS (5xxx/6xxx) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   // Industrialização por encomenda
   '5901','5902','5903','6901','6902','6903',
   // Depósito fechado / armazém geral
@@ -1824,7 +1824,7 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setSelectedCompetence('TODAS')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-            TODO O PERÃODO
+            TODO O PERÍODO
           </button>
           {competencias.map(c => (
             <button key={c} onClick={() => setSelectedCompetence(c)}
@@ -2337,7 +2337,7 @@ const ProductsTab = ({ data, cnpjCache, accentColor, lineColor, isSaida, onGerar
 };
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// MODAL: CONFIRMAÇÃƒO DE NCM AMBÃGUA
+// MODAL: CONFIRMAÇÃƒO DE NCM AMBÍGUA
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const NCMSelectorModal = ({ ncm, prodNome, opcoes, onSelecionar, onFechar }) => (
   <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onFechar}>
@@ -3062,7 +3062,7 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
           <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0"><TrendingUp className="w-5 h-5 text-amber-700"/></div>
           <div>
             <p className="font-bold text-amber-900 text-base">{percBeneficiado.toFixed(1)}% do {flow==='saidas'?'faturamento':'volume de compras'} está em categorias com alíquota reduzida ou zero</p>
-            <p className="text-amber-700 text-sm mt-1 leading-relaxed">Mas isso só se converte em economia real se a empresa optar pelo <strong>Regime Regular (Â§3Âº do Art. 16 da LC 214)</strong>. No Simples Nacional puro, a partilha do DAS é fixa e o preço de balcão não muda automaticamente — a análise de migração de regime é o próximo passo.</p>
+            <p className="text-amber-700 text-sm mt-1 leading-relaxed">Mas isso só se converte em economia real se a empresa optar pelo <strong>Regime Regular (§3º do Art. 16 da LC 214)</strong>. No Simples Nacional puro, a partilha do DAS é fixa e o preço de balcão não muda automaticamente — a análise de migração de regime é o próximo passo.</p>
           </div>
         </div>
       </div>
@@ -4367,8 +4367,8 @@ const CFOPS_ST = new Set([
                         <option value="anexo1">Comércio — Anexo I</option>
                         <option value="anexo2">Indústria — Anexo II</option>
                         <option value="anexo3">Serviços Geral — Anexo III</option>
-                        <option value="anexo4">Serviços Â§5ÂºC — Anexo IV (sem CPP)</option>
-                        <option value="anexo5">Serviços Â§5ÂºI — Anexo V (Fator R)</option>
+                        <option value="anexo4">Serviços §5ºC — Anexo IV (sem CPP)</option>
+                        <option value="anexo5">Serviços §5ºI — Anexo V (Fator R)</option>
                       </select>
                       {tabela?.obs && (
                         <p className="text-[10px] text-amber-600 mt-1 font-bold">{tabela.obs}</p>
@@ -5688,7 +5688,7 @@ const saldo    = totalDeb - totalCre;
     ['','','','','',''],
 
     // â"€â"€ Débitos â"€â"€
-    ['DÉBITOS (SAÃDAS)','Itens','Valor Base (R$)','CBS (R$)','IBS (R$)','Total IBS+CBS (R$)'],
+    ['DÉBITOS (SAÍDAS)','Itens','Valor Base (R$)','CBS (R$)','IBS (R$)','Total IBS+CBS (R$)'],
     ...[ [0,'Alíquota Cheia (sem redução)'],[60,'Redução 60% — LC 214/2025'],[100,'Alíquota Zero / Isenção 100%'] ]
       .filter(([p])=> catS(p).length > 0)
       .map(([p,label])=>{
