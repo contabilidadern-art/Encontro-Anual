@@ -4978,6 +4978,7 @@ useEffect(() => {
     const dicionarioOculto = {};
     let contadorFicticio = 1;
     let globalId = Date.now();
+    let empresaNomeDetectado = null;
 
     const IBGE_UF = IBGE_UF_MAP;
 
@@ -5009,6 +5010,10 @@ useEffect(() => {
           const tomaEndNac = toma?.getElementsByTagName('endNac')?.[0];
           const tomaCMun   = safeExtract(tomaEndNac, 'cMun');
           const tomaUF     = (tomaCMun ? IBGE_UF[tomaCMun.slice(0,2)] : null) || prestUF;
+          if (isSaidaNFSe && !empresaNomeDetectado) {
+            const nomeReal = safeExtract(emitNFSe, 'xNome');
+            if (nomeReal) empresaNomeDetectado = nomeReal;
+          }
 
           let nfsePeerCNPJ = isSaidaNFSe ? tomaCNPJ : prestCNPJ;
           let nfsePeerNome = isSaidaNFSe ? tomaNome  : prestNome;
@@ -5072,6 +5077,10 @@ const isReceiver = destCNPJcheck === cleanLicense;
 // Se EU sou o destinatário → sempre entrada
 // Se EU sou o emitente → depende do tpNF
 const isSaida = isReceiver ? false : (isIssuer ? (tpNF === '1') : false);
+if (isIssuer && !empresaNomeDetectado) {
+  const nomeReal = safeExtract(emit, 'xNome');
+  if (nomeReal) empresaNomeDetectado = nomeReal;
+}
         const emitUFReal = safeExtract(emit.getElementsByTagName('enderEmit')[0], 'UF') || 'RJ';
         const destUFReal = dest ? safeExtract(dest.getElementsByTagName('enderDest')[0], 'UF') || 'RJ' : 'RJ';
         let peerCNPJ, peerNome, peerUF;
@@ -5148,6 +5157,9 @@ const item = {
       }
     } // ← ADICIONAR AQUI para fechar o for loop
 
+    if (empresaNomeDetectado) {
+      setCurrentUser(prev => (prev && prev.name === 'Empresa') ? { ...prev, name: empresaNomeDetectado } : prev);
+    }
 
  if (importMode === 'acrescentar') {   //
       setSaidasData(prev => {
@@ -5220,6 +5232,7 @@ const item = {
     const cleanLicense = cleanCNPJ(currentUser.licenseCNPJ);
     const dicionarioOculto = {};
     let contadorFicticio = 1;
+    let empresaNomeDetectado = null;
     for (const file of files) {
       const text = await file.text();
       try {
@@ -5249,6 +5262,10 @@ const item = {
           const tomaEndNac = toma?.getElementsByTagName('endNac')?.[0];
           const tomaCMun   = safeExtract(tomaEndNac, 'cMun');
           const tomaUF     = (tomaCMun ? IBGE_UF_MAP[tomaCMun.slice(0,2)] : null) || prestUF;
+          if (isSaidaNFSe && !empresaNomeDetectado) {
+            const nomeReal = safeExtract(emitNFSe, 'xNome');
+            if (nomeReal) empresaNomeDetectado = nomeReal;
+          }
 
           let nfsePeerCNPJ = isSaidaNFSe ? tomaCNPJ : prestCNPJ;
           let nfsePeerNome = isSaidaNFSe ? tomaNome  : prestNome;
@@ -5305,6 +5322,10 @@ const item = {
         const emitCNPJ = cleanCNPJ(safeExtract(emit,'CNPJ'));
         const isIssuer = emitCNPJ === cleanLicense;
         const isSaida = isIssuer ? (tpNF === '1') : false;
+        if (isIssuer && !empresaNomeDetectado) {
+          const nomeReal = safeExtract(emit, 'xNome');
+          if (nomeReal) empresaNomeDetectado = nomeReal;
+        }
 
         const emitUFReal = safeExtract(emit.getElementsByTagName('enderEmit')[0], 'UF') || 'RJ';
         const destUFReal = dest ? safeExtract(dest.getElementsByTagName('enderDest')[0], 'UF') || 'RJ' : 'RJ';
@@ -5377,6 +5398,9 @@ isNFCE: modelo==='65',
       } catch (e) { console.error("Erro ao processar arquivo:", e); }
     }
     if (blocked > 0) setUploadError(`Atenção: ${blocked} arquivo(s) bloqueado(s) por CNPJ não autorizado.`);
+    if (empresaNomeDetectado) {
+      setCurrentUser(prev => (prev && prev.name === 'Empresa') ? { ...prev, name: empresaNomeDetectado } : prev);
+    }
     setSaidasData(newSaidas);
     setEntradasData(newEntradas);
     setIsBatchProcessing(false);
