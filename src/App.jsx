@@ -1271,7 +1271,7 @@ setForm({ descricao: '', categoria: 'mercadorias', valor: '' });
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: REFORMA TRIBUTÃRIA
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCache, simplesRate, currentUser, label, empresaRegime, isEntrada, reformYear, setReformYear }) => {
+const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCache, simplesRate, currentUser, label, empresaRegime, isEntrada, reformYear, setReformYear, getCached: getCachedReform, saveDecision, deleteDecision, clearAllDecisions, loadingNcmDecisoes }) => {
   const [subTab, setSubTab] = useState('notas');
   const [expandedInvoice, setExpandedInvoice] = useState(null);
   const [expandedInvoiceItem, setExpandedInvoiceItem] = useState(null);
@@ -1279,7 +1279,6 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
   const [enrichProgress, setEnrichProgress] = useState(0);
   const [selectedCompetence, setSelectedCompetence] = useState('TODAS');
   const cnpj = currentUser?.licenseCNPJ;
-  const { getCached: getCachedReform } = useNcmDecisoes(cnpj);
 
   const competenceIndex = useMemo(() => {
     const idx = new Map();
@@ -1758,8 +1757,8 @@ const impact = calculateReformImpact(
         )
       ) : (
        subTab === 'conferencia'
-         ? <ConferenciaNCMTab saidasData={saidasData} entradasData={entradasData} cnpj={currentUser?.licenseCNPJ} usuario={currentUser?.name || currentUser?.username || 'desconhecido'}/>
-         : <ReductionInsightsTab saidasData={saidasData} entradasData={entradasData} simplesRate={simplesRate} reformYear={reformYear} empresaRegime={empresaRegime} cnpj={currentUser?.licenseCNPJ}/>
+         ? <ConferenciaNCMTab saidasData={saidasData} entradasData={entradasData} cnpj={currentUser?.licenseCNPJ} usuario={currentUser?.name || currentUser?.username || 'desconhecido'} getCached={getCachedReform} saveDecision={saveDecision} deleteDecision={deleteDecision} clearAllDecisions={clearAllDecisions} loadingNcmDecisoes={loadingNcmDecisoes}/>
+         : <ReductionInsightsTab saidasData={saidasData} entradasData={entradasData} simplesRate={simplesRate} reformYear={reformYear} empresaRegime={empresaRegime} cnpj={currentUser?.licenseCNPJ} getCached={getCachedReform}/>
       )}
     </div>
   );
@@ -2385,7 +2384,7 @@ const NCMSelectorModal = ({ ncm, prodNome, opcoes, onSelecionar, onFechar }) => 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const CONF_NCM_KEY = 'ncm_conferencia_v1';
 
-const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => {
+const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCached, saveDecision, deleteDecision, clearAllDecisions, loadingNcmDecisoes }) => {
   const [confirmacoes, setConfirmacoes] = useState(() => {
     try { return JSON.parse(localStorage.getItem(CONF_NCM_KEY) || '{}'); }
     catch { return {}; }
@@ -2400,7 +2399,6 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => 
     try { return new Set(JSON.parse(localStorage.getItem('ncm_fora_aprovados_v1') || '[]')); }
     catch { return new Set(); }
   });
-  const { getCached, saveDecision, deleteDecision, clearAllDecisions } = useNcmDecisoes(cnpj);
   const [clearingAll, setClearingAll] = useState(false);
   const [expandedEnquadrado, setExpandedEnquadrado] = useState(new Set());
   const [ncmReviewMode, setNcmReviewMode] = useState('lote'); // 'lote' | 'detalhado'
@@ -2456,7 +2454,10 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => 
   const resetar   = (ncm) => { const n = { ...confirmacoes }; delete n[ncm]; save(n); };
 
   // Classifica cada NCM único usando o discriminador — agrupa por NCM+produto
+  // Espera o cache de decisões carregar antes de processar, para não gastar
+  // uma passada inteira sem cache e refazer tudo de novo assim que ele chega.
   const { itens, revisaoItems, foraItems } = useMemo(() => {
+    if (loadingNcmDecisoes) return { itens: [], revisaoItems: [], foraItems: [] };
     const mapa = {};    // NCM → item ENQUADRADO
     const filaMap = {}; // chave → item CONFERIR (revisão manual)
     const foraMap = {}; // chave → item FORA_DO_ANEXO (sem benefício)
@@ -2547,7 +2548,7 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => 
       revisaoItems: Object.values(filaMap).sort((a, b) => b.faturamento - a.faturamento),
       foraItems: Object.values(foraMap).sort((a, b) => b.faturamento - a.faturamento),
     };
-  }, [currentData, getCached, cnpj, selectedCompetence, vetForcados]);
+  }, [currentData, getCached, cnpj, selectedCompetence, vetForcados, loadingNcmDecisoes]);
 
   // Grupos de revisão em lote: todos os NCMs pendentes (agrupados por NCM)
   const gruposLote = useMemo(() => {
@@ -2677,6 +2678,12 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => 
               >{comp}</button>
             ))}
           </div>
+        </div>
+      )}
+
+      {loadingNcmDecisoes && (
+        <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 flex items-center gap-2 text-xs font-bold text-violet-700">
+          <RefreshCw className="w-4 h-4 animate-spin"/> Carregando decisões salvas...
         </div>
       )}
 
@@ -2898,11 +2905,10 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario }) => 
 
 const NCM_CONFIRMACOES_KEY = 'ncm_confirmacoes_v1';
 
-const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, reformYear, empresaRegime, cnpj }) => {
+const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, reformYear, empresaRegime, cnpj, getCached }) => {
   const [flow, setFlow] = useState('saidas');
   const [modalTier, setModalTier] = useState(null); // null | 'zero' | 'reduced' | 'full'
   const [modalComp, setModalComp] = useState('TODAS');
-  const { getCached } = useNcmDecisoes(cnpj);
 
   const fBRL = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -3145,11 +3151,10 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: APURAÇÃƒO
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYear, cnpj }) => {
+const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYear, cnpj, getCached }) => {
   const rules = REFORM_SCHEDULE[reformYear] || { cbs: 0, ibs: 0 };
   const [filtroReducao, setFiltroReducao] = useState('TODAS'); // 'TODAS' | '0' | '60' | '100'
   const [filtroFluxoResumo, setFiltroFluxoResumo] = useState('TODOS'); // 'TODOS' | 'saida' | 'entrada'
-  const { getCached } = useNcmDecisoes(cnpj);
 
   // â"€â"€ Categoriza cada item de saída com seu impacto e % de redução â"€â"€
   // Usa o discriminador de substâncias para resolver NCMs ambíguos (ex: cap.
@@ -3633,9 +3638,8 @@ const creditos = useMemo(() => {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: PAINEL INTELIGENTE
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxaOculta, setTaxaOculta, empresaRegime, setEmpresaRegime, reformYear, onGerarDemo, isBatchProcessing, cnpj }) => {
+const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxaOculta, setTaxaOculta, empresaRegime, setEmpresaRegime, reformYear, onGerarDemo, isBatchProcessing, cnpj, getCached }) => {
   const rules = REFORM_SCHEDULE[reformYear] || { cbs: 0, ibs: 0 };
-  const { getCached } = useNcmDecisoes(cnpj);
   const kpis = useMemo(() => {
     const receitaXML = saidasData.reduce((acc, curr) => acc + curr.prodValTotal, 0);
     const receitaReal = taxaOculta < 100 ? receitaXML / (1 - (taxaOculta / 100)) : receitaXML;
@@ -3794,8 +3798,8 @@ const SimplesNacionalTab = ({
   autoDetectSeg, setAutoDetectSeg,
   simplesRate = 0,
   cnpj,
+  getCached: getCachedSimples,
 }) => {
-  const { getCached: getCachedSimples } = useNcmDecisoes(cnpj);
 
 const CFOPS_ST = new Set([
   // â"€â"€â"€ Intraestadual (5400s) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -4773,7 +4777,7 @@ const CFOPS_ST = new Set([
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const TaxAnalyzer = () => {
  const [currentUser, setCurrentUser] = useState(null);
-  const { getCached: getCachedNcmDecisao } = useNcmDecisoes(currentUser?.licenseCNPJ);
+  const { getCached: getCachedNcmDecisao, saveDecision: saveNcmDecisao, deleteDecision: deleteNcmDecisao, clearAllDecisions: clearAllNcmDecisoes, loading: loadingNcmDecisoes } = useNcmDecisoes(currentUser?.licenseCNPJ);
   const [showSplash, setShowSplash] = useState(false);
   const [loginForm, setLoginForm] = useState({ cnpj: '', regime: 'simples', aliquota: '' });
   const [activeModule, setActiveModule] = useState('visaogeral');
@@ -6126,6 +6130,11 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   isEntrada={refIsEntrada}
   reformYear={reformYear}
   setReformYear={setReformYear}
+  getCached={getCachedNcmDecisao}
+  saveDecision={saveNcmDecisao}
+  deleteDecision={deleteNcmDecisao}
+  clearAllDecisions={clearAllNcmDecisoes}
+  loadingNcmDecisoes={loadingNcmDecisoes}
 />
           </div>
         )}
@@ -6201,7 +6210,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
 </div>
 
 {apuracaoSubTab === 'apuracao' ? (
-  <ApuracaoTab saidasData={saidasParaApuracao} entradasData={entradasParaCMV} creditosManuais={creditosManuais} reformYear={reformYear} simplesRate={simplesRate} cnpj={currentUser?.licenseCNPJ}/>
+  <ApuracaoTab saidasData={saidasParaApuracao} entradasData={entradasParaCMV} creditosManuais={creditosManuais} reformYear={reformYear} simplesRate={simplesRate} cnpj={currentUser?.licenseCNPJ} getCached={getCachedNcmDecisao}/>
 ) : (
   <CreditosTab reformYear={reformYear}/>
 )}
@@ -6252,6 +6261,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   setAutoDetectSeg={setSimplesAutoDetectSeg}
   simplesRate={simplesRate}
   cnpj={currentUser?.licenseCNPJ}
+  getCached={getCachedNcmDecisao}
 />
           </div>
         )}
