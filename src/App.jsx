@@ -5,7 +5,7 @@ import {
   MapPin, Percent, Receipt, Map as MapIcon, ChevronDown, ChevronUp,
   Calendar, DollarSign, Package, BarChart3, ArrowUpRight, LogOut, ShieldAlert, Briefcase, FileText,
   Filter, Star, RefreshCw, CheckCircle, List, Activity, X, Truck, ShoppingCart, Building2,
-  Zap, Target, TrendingDown, AlertTriangle, Award, Users, Repeat, Scale, Download, BarChart2
+  Zap, Target, TrendingDown, AlertTriangle, Award, Users, Repeat, Scale, Download, BarChart2, Tag
 } from 'lucide-react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -32,13 +32,15 @@ import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firesto
 import { discriminarNCM } from './ncmDiscriminator';
 import NcmReviewQueue, { useNcmDecisoes } from './NcmReviewQueue';
 import NcmGroupReview from './NcmGroupReview';
+import NbsReviewQueue, { useNbsDecisoes } from './NbsReviewQueue';
+import logoRN from './assets/logo-rn.png';
 // XLSX carregado dinamicamente nos botões de exportar (evita ~300KB no bundle inicial)
 
 
 // â"€â"€â"€ BRAND (cinza neutro substituindo laranja) â"€â"€â"€
 const BRAND = {
-  primary: 'bg-[#111827]', primaryHover: 'hover:bg-[#0d0d0d]',
-  primaryText: 'text-[#111827]', primaryBorder: 'border-[#111827]',
+  primary: 'bg-[#222222]', primaryHover: 'hover:bg-[#0d0d0d]',
+  primaryText: 'text-[#222222]', primaryBorder: 'border-[#222222]',
   accent: 'bg-[#D9C14A]', accentHover: 'hover:bg-[#B8A030]',
   accentText: 'text-[#D9C14A]', accentBorder: 'border-[#D9C14A]',
   highlight: 'text-[#D9C14A]'
@@ -544,8 +546,29 @@ const getReducaoNBS = (nbs) => {
 // que retorna reducao:0 ("fiscalmente seguro") até serem confirmados — mesmo
 // quando o discriminador já sabe (por match literal ou decisão salva) que o
 // produto tem redução de 100%.
-const resolveReducaoEfetiva = (ncm, xProd, nbs, cached, competenciaAtual) => {
+const resolveReducaoEfetiva = (ncm, xProd, nbs, cached, competenciaAtual, cachedNbs, confirmacoes) => {
   const n = (ncm || '').replace(/\D/g, '').padStart(8, '0');
+
+  // Rejeição manual na Conferência NCM (produto confirmado como "fora do Anexo" pelo
+  // usuário) tem prioridade sobre qualquer classificação automática — sem isso, o
+  // Confronto IBS/CBS e as demais telas continuavam aplicando a redução mesmo depois
+  // do usuário rejeitar o enquadramento.
+  if (confirmacoes?.[n] === 'rejected') {
+    // Objeto truthy com reducao:0 — precisa ser um objeto (não null) para vencer o
+    // fallback `reducaoOverride || getReducaoNCM(...)` em calculateReformImpact;
+    // um reduction null seria tratado como "sem info" e cairia de volta na busca
+    // automática, reaplicando a redução que acabou de ser rejeitada.
+    return {
+      reduction: { reducao: 0, tipo: 'Rejeitado', anexo: '—', desc: 'Rejeitado manualmente na Conferência NCM' },
+      disc: {
+        status: 'FORA_DO_ANEXO', formaConfirmacao: 'manual', substancia: null,
+        reducao: null, tipo: null, anexo: null,
+        fundamentacao: 'Rejeitado manualmente na Conferência NCM',
+        score: 0, candidates: [], motivoFora: 'rejeitado_manual',
+      },
+    };
+  }
+
   const disc = discriminarNCM(n, xProd || '', cached, competenciaAtual);
   let reduction = null;
   if (disc.status === 'ENQUADRADO') {
@@ -557,6 +580,20 @@ const resolveReducaoEfetiva = (ncm, xProd, nbs, cached, competenciaAtual) => {
         : (getReducaoNCM(ncm) || getReducaoNBS(nbs));
     }
   }
+
+  // Serviço (NFS-e): sem NCM para discriminar — resolve pela tabela de NBS,
+  // com fila de revisão (igual ao NCM ambíguo) quando o código não está mapeado.
+  if (reduction === null && nbs) {
+    reduction = getReducaoNBS(nbs);
+    if (!reduction) {
+      if (cachedNbs) {
+        reduction = { reducao: cachedNbs.reducao, tipo: cachedNbs.tipo, anexo: cachedNbs.anexo, desc: cachedNbs.desc };
+      } else {
+        reduction = { _ambiguous: true, reducao: 0, tipo: 'Aguardando confirmação', anexo: '—', desc: 'NBS não mapeado — confirme o enquadramento do serviço.' };
+      }
+    }
+  }
+
   return { reduction, disc };
 };
 
@@ -1089,7 +1126,7 @@ setForm({ descricao: '', categoria: 'mercadorias', valor: '' });
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-[#111827] to-[#1a1a1a] p-6 rounded-xl text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#222222] to-[#1a1a1a] p-6 rounded-xl text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2"><CheckCircle className="w-6 h-6 text-[#D9C14A]"/>Créditos de IBS e CBS — {reformYear}</h3>
           <p className="text-gray-300 text-sm mt-1">Cadastre as contas que geram crédito. Aluguel tem redução de 70% conforme LC 214/2025.</p>
@@ -1173,7 +1210,7 @@ setForm({ descricao: '', categoria: 'mercadorias', valor: '' });
       {contas.length > 0 && (
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase">Filtrar:</span>
-          <button onClick={() => setFilterCat('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${filterCat === 'TODAS' ? 'bg-[#111827] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Todas ({contas.length})</button>
+          <button onClick={() => setFilterCat('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${filterCat === 'TODAS' ? 'bg-[#222222] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Todas ({contas.length})</button>
           {CATEGORIAS_CREDITO.filter(cat => contas.some(c => c.categoria === cat.id)).map(cat => {
             const qty = contas.filter(c => c.categoria === cat.id).length;
             const colors = COLOR_MAP[cat.color];
@@ -1253,7 +1290,7 @@ setForm({ descricao: '', categoria: 'mercadorias', valor: '' });
             </div>
           )}
           {filterCat === 'TODAS' && contas.length > 1 && (
-            <div className="bg-[#111827] text-white rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-2 items-center mt-2">
+            <div className="bg-[#222222] text-white rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-2 items-center mt-2">
               <span className="md:col-span-6 text-xs font-bold uppercase opacity-80">Total Geral — {contas.length} contas</span>
               <span className="md:col-span-2 text-right text-sm font-bold">R$ {totais.base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               <span className="md:col-span-1 text-right text-sm font-bold text-gray-400">R$ {totais.cbs.toFixed(2)}</span>
@@ -1271,13 +1308,14 @@ setForm({ descricao: '', categoria: 'mercadorias', valor: '' });
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: REFORMA TRIBUTÃRIA
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCache, simplesRate, currentUser, label, empresaRegime, isEntrada, reformYear, setReformYear, getCached: getCachedReform, saveDecision, deleteDecision, clearAllDecisions, loadingNcmDecisoes }) => {
+const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCache, simplesRate, currentUser, label, empresaRegime, isEntrada, reformYear, setReformYear, getCached: getCachedReform, saveDecision, deleteDecision, clearAllDecisions, loadingNcmDecisoes, getCachedNbs, saveDecisionNbs, loadingNbsDecisoes, ncmConfirmacoes, setNcmConfirmacoes, segmentosSimples, rbt12RawSimples }) => {
   const [subTab, setSubTab] = useState('notas');
   const [expandedInvoice, setExpandedInvoice] = useState(null);
   const [expandedInvoiceItem, setExpandedInvoiceItem] = useState(null);
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState(0);
   const [selectedCompetence, setSelectedCompetence] = useState('TODAS');
+  const [docTipoFiltro, setDocTipoFiltro] = useState('todas'); // 'todas' | 'venda' | 'servico'
   const cnpj = currentUser?.licenseCNPJ;
 
   const competenceIndex = useMemo(() => {
@@ -1301,20 +1339,26 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
     selectedCompetence === 'TODAS' ? data : (competenceIndex.get(selectedCompetence) ?? [])
   ), [data, selectedCompetence, competenceIndex]);
 
+  const tipoFilteredData = useMemo(() => {
+    if (docTipoFiltro === 'servico') return filteredData.filter(i => i.tipoDoc === 'NFSe');
+    if (docTipoFiltro === 'venda') return filteredData.filter(i => i.tipoDoc !== 'NFSe');
+    return filteredData;
+  }, [filteredData, docTipoFiltro]);
+
   const groupedInvoices = useMemo(() => {
     const groups = {};
-    filteredData.forEach(item => {
+    tipoFilteredData.forEach(item => {
       const k = `${item.tipoDoc || 'NFe'}_${item.peerCNPJ || ''}_${item.nNF || 'S/N'}`;
       if (!groups[k]) groups[k] = { nNF: item.nNF || 'S/N', tipoDoc: item.tipoDoc || 'NFe', peerNome: item.peerNome, peerCNPJ: item.peerCNPJ, peerUF: item.peerUF, emitUF: item.emitUF, date: item.date, items: [], totalValue: 0 };
       groups[k].items.push(item);
       groups[k].totalValue += item.prodValTotal;
     });
     return Object.values(groups).sort((a,b) => b.totalValue - a.totalValue);
-  }, [filteredData]);
+  }, [tipoFilteredData]);
 
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); setExpandedInvoice(null); }, [selectedCompetence, subTab]);
+  useEffect(() => { setPage(0); setExpandedInvoice(null); }, [selectedCompetence, subTab, docTipoFiltro]);
 
   const enrichedInvoices = useMemo(() =>
     groupedInvoices.map(invoice => {
@@ -1342,11 +1386,11 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
     [enrichedInvoices]);
 
   const uniqueCNPJsPendentes = useMemo(() => {
-    const todos = [...new Set(filteredData.map(i => cleanCNPJ(i.peerCNPJ)).filter(c => c && c.length === 14 && c !== '00000000000000'))];
+    const todos = [...new Set(tipoFilteredData.map(i => cleanCNPJ(i.peerCNPJ)).filter(c => c && c.length === 14 && c !== '00000000000000'))];
     return todos.filter(cnpj => !cnpjCache[cnpj] || cnpjCache[cnpj].includes('Erro')).length;
-  }, [filteredData, cnpjCache]);
+  }, [tipoFilteredData, cnpjCache]);
 
-  const dash = useDashboard(filteredData, cnpjCache);
+  const dash = useDashboard(tipoFilteredData, cnpjCache);
 
   const toggleInvoiceItem = (nNF, idx) => {
     const k = `${nNF}-${idx}`;
@@ -1354,9 +1398,9 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
   };
 
   const enrichCustomerData = async () => {
-    if (filteredData.length === 0) return;
+    if (tipoFilteredData.length === 0) return;
     setIsEnriching(true); setEnrichProgress(0);
-    const uniqueCNPJs = [...new Set(filteredData.map(i => cleanCNPJ(i.peerCNPJ)).filter(c => c && c.length === 14 && c !== '00000000000000'))].filter(cnpj => !cnpjCache[cnpj] || cnpjCache[cnpj].includes('Erro'));
+    const uniqueCNPJs = [...new Set(tipoFilteredData.map(i => cleanCNPJ(i.peerCNPJ)).filter(c => c && c.length === 14 && c !== '00000000000000'))].filter(cnpj => !cnpjCache[cnpj] || cnpjCache[cnpj].includes('Erro'));
     if (uniqueCNPJs.length === 0) { alert('Todos os CNPJs já foram consultados!'); setIsEnriching(false); return; }
     let sucessos = 0;
     const buffer = {};
@@ -1383,7 +1427,7 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#111827] flex items-center gap-2"><List className="w-6 h-6 text-[#D9C14A]"/> Reforma Tributária — {label}</h2>
+          <h2 className="text-2xl font-bold text-[#222222] flex items-center gap-2"><List className="w-6 h-6 text-[#D9C14A]"/> Reforma Tributária — {label}</h2>
           <p className="text-slate-500 text-sm mt-1">Visualize cada nota, o regime da contraparte e o cálculo detalhado por item.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -1411,7 +1455,7 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
 
       <div className="flex gap-4 border-b border-slate-200 px-2">
         {[
-          { id: 'notas',       label: 'Visão por Notas',        icon: FileText,    activeClass: 'border-[#D9C14A] text-[#111827]' },
+          { id: 'notas',       label: 'Visão por Notas',        icon: FileText,    activeClass: 'border-[#D9C14A] text-[#222222]' },
           { id: 'conferencia', label: 'Conferência NCM',         icon: CheckCircle, activeClass: 'border-amber-500 text-amber-700' },
           { id: 'reducoes',    label: 'Top Reduções (NCM)',      icon: TrendingUp,  activeClass: 'border-emerald-500 text-emerald-700' },
         ].map(({ id, label, icon: Icon, activeClass }) => (
@@ -1433,20 +1477,36 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
           <div className="space-y-6">
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="bg-[#111827] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
+                <div className="bg-[#222222] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
                 <span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
+                <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
                 {availableCompetences.map(comp => (
-                  <button key={comp} onClick={() => setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>
+                  <button key={comp} onClick={() => setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-violet-600 p-2 rounded-lg text-white"><Briefcase className="w-4 h-4"/></div>
+                <span className="text-sm font-bold text-slate-700">Tipo de Documento</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'todas',   label: 'Todas' },
+                  { id: 'venda',   label: 'Vendas' },
+                  { id: 'servico', label: 'Serviços' },
+                ].map(({ id, label: chipLabel }) => (
+                  <button key={id} onClick={() => setDocTipoFiltro(id)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${docTipoFiltro===id?'bg-violet-600 text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{chipLabel}</button>
                 ))}
               </div>
             </div>
 
             {enrichedInvoices.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-[#111827] p-4 rounded-xl shadow-sm flex items-center gap-4">
+                <div className="bg-[#222222] p-4 rounded-xl shadow-sm flex items-center gap-4">
                   <div className="p-3 bg-white/20 rounded-full text-white"><DollarSign className="w-6 h-6"/></div>
                   <div>
                     <p className="text-xs text-white/60 uppercase font-bold">{enrichedInvoices.length} Notas — Total Geral</p>
@@ -1478,10 +1538,10 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
                 const { peerRegime, sellerRegimeNorm, originStateDisplay, destStateDisplay, icmsInterest } = invoice;
 
                 return (
-                  <div key={idx} className={`bg-white rounded-xl shadow-sm border transition-all duration-300 overflow-hidden ${isExpanded ? 'border-[#111827] ring-1 ring-[#111827]' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <div key={idx} className={`bg-white rounded-xl shadow-sm border transition-all duration-300 overflow-hidden ${isExpanded ? 'border-[#222222] ring-1 ring-[#222222]' : 'border-slate-200 hover:border-slate-300'}`}>
                     <div className="p-5 flex flex-col md:flex-row items-center justify-between cursor-pointer bg-slate-50 hover:bg-white transition-colors" onClick={() => setExpandedInvoice(isExpanded ? null : invoice.nNF)}>
                       <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className={`p-3 rounded-full ${isExpanded ? 'bg-[#111827] text-white' : 'bg-white border border-slate-200 text-slate-400'}`}><FileText className="w-5 h-5"/></div>
+                        <div className={`p-3 rounded-full ${isExpanded ? 'bg-[#222222] text-white' : 'bg-white border border-slate-200 text-slate-400'}`}><FileText className="w-5 h-5"/></div>
                         <div>
                           <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
                             {invoice.tipoDoc === 'NFSe' ? 'NFS-e:' : 'Nota Fiscal:'} {invoice.nNF}
@@ -1499,14 +1559,13 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
                           <span>{originStateDisplay}</span>
                           <span className="text-slate-300 mx-0.5">→</span>
                           <span>{destStateDisplay}</span>
-                          <span className="text-slate-400 font-normal ml-1">({icmsInterest}% ICMS)</span>
                         </div>
                         {peerRegime !== 'Desconhecido' && (
                           <span className={`text-[10px] px-2 py-1 rounded border uppercase font-bold tracking-wide ${peerRegime === 'Regime Normal' ? 'bg-gray-100 text-blue-700 border-gray-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>{peerRegime}</span>
                         )}
                         <div className="text-right">
                           <span className="text-[10px] text-slate-400 uppercase font-bold">Valor Total</span>
-                          <div className="text-xl font-bold text-[#111827]">R$ {invoice.totalValue.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+                          <div className="text-xl font-bold text-[#222222]">R$ {invoice.totalValue.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
                         </div>
                         {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400"/> : <ChevronDown className="w-5 h-5 text-slate-400"/>}
                       </div>
@@ -1526,12 +1585,12 @@ const ReformTab = memo(({ data, saidasData, entradasData, cnpjCache, setCnpjCach
                           <table className="w-full text-sm text-left">
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                               <tr>
-                                <th className="px-4 py-3">Produto / NCM</th>
-                                <th className="px-4 py-3 text-right">Qtd</th>
-                                <th className="px-4 py-3 text-right">V. Unit Original</th>
-                                <th className="px-4 py-3 text-right bg-slate-100">V. Unit Limpo</th>
-                                <th className="px-4 py-3 text-right text-blue-700">Preço {reformYear}</th>
-                                <th className="px-4 py-3 text-right text-emerald-700">{isEntrada ? 'Crédito' : 'Débito'}</th>
+                                <th className="px-4 py-3 w-full">Produto / NCM</th>
+                                <th className="px-4 py-3 text-right whitespace-nowrap">Qtd</th>
+                                <th className="px-4 py-3 text-right whitespace-nowrap">V. Unit Original</th>
+                                <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-100">V. Unit Limpo</th>
+                                <th className="px-4 py-3 text-right whitespace-nowrap text-blue-700">Preço {reformYear}</th>
+                                <th className="px-4 py-3 text-right whitespace-nowrap text-emerald-700">{isEntrada ? 'Crédito' : 'Débito'}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -1558,7 +1617,7 @@ const impostoUnit = item.impostoDestacado?.temDados
   : (item.impostoDestacado || null);
 
 const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
-const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedReform(cnpj, ncmNorm, item.prodNome || '', null), null);
+const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedReform(cnpj, ncmNorm, item.prodNome || '', null), null, getCachedNbs(cnpj, (item.prodNBS || '').replace(/\D/g, '')), ncmConfirmacoes);
 const impact = calculateReformImpact(
   calcUnit, reformYear, originState, destState,
   sellerRegimeNorm, simplesRate,
@@ -1568,6 +1627,22 @@ const impact = calculateReformImpact(
   isEntrada,
   item.prodCFOP || '', item.prodNome || '', reduction
 );
+
+// Venda por empresa do Simples: reconstrói o preço a partir do preço limpo
+// (Preço Limpo + DAS Por Fora dos demais tributos + CBS/IBS à parte) — mesma
+// sistemática usada na Precificação. O futurePrice padrão de calculateReformImpact
+// soma só CBS/IBS ao preço limpo e ignora o restante do DAS (IRPJ/CSLL/CPP/ISS/ICMS),
+// fazendo parecer que o preço quase não muda.
+const isVendaSimples = !isEntrada && sellerRegimeNorm === 'simples';
+let dasPorForaInfo = null;
+let precoNovoExibido = impact.futurePrice;
+if (isVendaSimples) {
+  const { rate: dasPorForaRate, anexo: anexoDasFora, configurado: dasForaConfigurado } =
+    calcDasPorForaRate(reformYear, item.tipoDoc === 'NFSe', segmentosSimples, rbt12RawSimples, simplesRate);
+  const dasPorForaValor = impact.netValue * dasPorForaRate;
+  precoNovoExibido = impact.netValue + dasPorForaValor + impact.taxes.cbs + impact.taxes.ibs;
+  dasPorForaInfo = { dasPorForaRate, anexoDasFora, dasForaConfigurado, dasPorForaValor };
+}
                                 const isItemExp = expandedInvoiceItem === `${invoice.nNF}-${iIdx}`;
                                 return (
                                   <React.Fragment key={iIdx}>
@@ -1592,7 +1667,9 @@ const impact = calculateReformImpact(
                                             {impact.reducaoInfo?._ambiguous && (
                                               <div className="flex items-center gap-1 mt-1">
                                                 <span className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase flex-shrink-0 bg-amber-100 text-amber-700 border-amber-300">
-                                                  ⚠ NCM ambígua — confirmar na aba Insights
+                                                  {item.tipoDoc === 'NFSe'
+                                                    ? '⚠ NBS não mapeado — confirmar na aba Conferência'
+                                                    : '⚠ NCM ambígua — confirmar na aba Insights'}
                                                 </span>
                                               </div>
                                             )}
@@ -1606,11 +1683,11 @@ const impact = calculateReformImpact(
                                           </div>
                                         </div>
                                       </td>
-                                      <td className="px-4 py-3 text-right text-slate-600">{smartNumber(item.prodQty, item.prodUnit)}</td>
-                                      <td className="px-4 py-3 text-right text-slate-600">R$ {calcUnit.toFixed(2)}</td>
-                                      <td className="px-4 py-3 text-right font-bold text-slate-700 bg-slate-50">R$ {impact.netValue.toFixed(2)}</td>
-                                      <td className="px-4 py-3 text-right font-bold text-blue-700">R$ {impact.futurePrice.toFixed(2)}</td>
-                                      <td className="px-4 py-3 text-right font-bold text-emerald-600">{impact.credit > 0 ? `R$ ${impact.credit.toFixed(2)}` : '-'}</td>
+                                      <td className="px-4 py-3 text-right whitespace-nowrap text-slate-600">{smartNumber(item.prodQty, item.prodUnit)}</td>
+                                      <td className="px-4 py-3 text-right whitespace-nowrap text-slate-600">R$ {calcUnit.toFixed(2)}</td>
+                                      <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-slate-700 bg-slate-50">R$ {impact.netValue.toFixed(2)}</td>
+                                      <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-blue-700">R$ {precoNovoExibido.toFixed(2)}</td>
+                                      <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-emerald-600">{impact.credit > 0 ? `R$ ${impact.credit.toFixed(2)}` : '-'}</td>
                                     </tr>
                                   {isItemExp && (
                                       <tr>
@@ -1679,13 +1756,23 @@ const impact = calculateReformImpact(
   <span>(+) IBS ({impact.effectiveIbsRate.toFixed(2)}%):</span>
   <span>+ R$ {impact.taxes.ibs.toFixed(2)}</span>
 </div>
-                                            {impact.taxes.icmsLegacy > 0 && (
+                                            {isVendaSimples ? (
+                                              <div className="flex justify-between text-indigo-700">
+                                                <span>(+) DAS Por Fora — Anexo {dasPorForaInfo.anexoDasFora} ({(dasPorForaInfo.dasPorForaRate * 100).toFixed(2)}%):</span>
+                                                <span>+ R$ {dasPorForaInfo.dasPorForaValor.toFixed(2)}</span>
+                                              </div>
+                                            ) : impact.taxes.icmsLegacy > 0 && (
                                                   <div className="flex justify-between text-slate-500">
                                                     <span>(+) ICMS Transição ({icmsInterest}%):</span>
                                                     <span>+ R$ {impact.taxes.icmsLegacy.toFixed(2)}</span>
                                                 </div>
                                                 )}
-                                        <div className="flex justify-between font-bold pt-1 border-t text-blue-700"><span>(=) Novo Preço:</span><span>R$ {impact.futurePrice.toFixed(2)}</span></div>
+                                            {isVendaSimples && !dasPorForaInfo.dasForaConfigurado && (
+                                              <div className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+                                                RBT12 não configurado na aba Simples Nacional — usando a alíquota de hoje como aproximação.
+                                              </div>
+                                            )}
+                                        <div className="flex justify-between font-bold pt-1 border-t text-blue-700"><span>(=) Novo Preço:</span><span>R$ {precoNovoExibido.toFixed(2)}</span></div>
 </div>
 {/* 3. Crédito */}
 <div className="space-y-2">
@@ -1757,8 +1844,8 @@ const impact = calculateReformImpact(
         )
       ) : (
        subTab === 'conferencia'
-         ? <ConferenciaNCMTab saidasData={saidasData} entradasData={entradasData} cnpj={currentUser?.licenseCNPJ} usuario={currentUser?.name || currentUser?.username || 'desconhecido'} getCached={getCachedReform} saveDecision={saveDecision} deleteDecision={deleteDecision} clearAllDecisions={clearAllDecisions} loadingNcmDecisoes={loadingNcmDecisoes}/>
-         : <ReductionInsightsTab saidasData={saidasData} entradasData={entradasData} simplesRate={simplesRate} reformYear={reformYear} empresaRegime={empresaRegime} cnpj={currentUser?.licenseCNPJ} getCached={getCachedReform}/>
+         ? <ConferenciaNCMTab saidasData={saidasData} entradasData={entradasData} cnpj={currentUser?.licenseCNPJ} usuario={currentUser?.name || currentUser?.username || 'desconhecido'} getCached={getCachedReform} saveDecision={saveDecision} deleteDecision={deleteDecision} clearAllDecisions={clearAllDecisions} loadingNcmDecisoes={loadingNcmDecisoes} getCachedNbs={getCachedNbs} saveDecisionNbs={saveDecisionNbs} loadingNbsDecisoes={loadingNbsDecisoes} confirmacoes={ncmConfirmacoes} setConfirmacoes={setNcmConfirmacoes}/>
+         : <ReductionInsightsTab saidasData={saidasData} entradasData={entradasData} simplesRate={simplesRate} reformYear={reformYear} empresaRegime={empresaRegime} cnpj={currentUser?.licenseCNPJ} getCached={getCachedReform} getCachedNbs={getCachedNbs} ncmConfirmacoes={ncmConfirmacoes}/>
       )}
     </div>
   );
@@ -1767,6 +1854,287 @@ const impact = calculateReformImpact(
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: VISÃƒO GERAL DA OPERAÇÃƒO
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const PRECIF_ANEXOS_SERVICO = new Set(['anexo3', 'anexo4', 'anexo5']);
+
+// DAS "Por Fora": alíquota efetiva dos tributos do Simples Nacional que NÃO são
+// IBS/CBS (IRPJ/CSLL/CPP/ISS/ICMS) — usada para reconstruir o preço de venda quando
+// a empresa opta por apurar "por fora" (IBS/CBS recolhidos separados, fora da guia).
+// Reaproveita a configuração já feita na aba Simples Nacional (RBT12 + Anexo do
+// segmento correspondente); sem RBT12/segmento configurado, cai para a alíquota de
+// hoje como aproximação. Usado tanto na Precificação quanto em Visão por Notas.
+const calcDasPorForaRate = (reformYear, isServico, segmentosSimples, rbt12RawSimples, aliquotaFallback) => {
+  const anoTabela = SIMPLES_DB[reformYear] ? reformYear : Object.keys(SIMPLES_DB).sort().reverse().find(a => a <= reformYear) || '2027';
+  const segMatch = (segmentosSimples || []).find(s => PRECIF_ANEXOS_SERVICO.has(s.anexo) === isServico);
+  const anexo = segMatch?.anexo || (isServico ? 'anexo3' : 'anexo1');
+  const tab = SIMPLES_DB[anoTabela]?.[anexo];
+  const rbt12 = parseFloat((rbt12RawSimples || '0').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+  const configurado = rbt12 > 0 && !!tab;
+
+  if (!configurado) {
+    return { rate: (aliquotaFallback || 0) / 100, anexo, configurado };
+  }
+  const fi = tab.faixas.findIndex(f => rbt12 <= f.limite);
+  const faixa = tab.faixas[fi >= 0 ? fi : tab.faixas.length - 1];
+  const aliqEf = (rbt12 * faixa.nominal - faixa.deducao) / rbt12;
+  const ibsIdx = tab.tributos.indexOf('IBS');
+  const cbsIdx = tab.tributos.indexOf('CBS');
+  const repSemIBSCBS = tab.tributos.reduce((acc, nome, i) => (i === ibsIdx || i === cbsIdx) ? acc : acc + (faixa.rep[i] || 0), 0);
+  return { rate: aliqEf * repSemIBSCBS, anexo, configurado };
+};
+
+const PrecificacaoTab = memo(({ saidasData, empresaRegime, simplesRate, reformYear, cnpj, getCached, getCachedNbs, ncmConfirmacoes, segmentosSimples, rbt12RawSimples }) => {
+  const [busca, setBusca] = useState('');
+  const [selecionado, setSelecionado] = useState(null);
+  const [apuracao, setApuracao] = useState('fora'); // 'dentro' | 'fora'
+  // Empresa pode ter comércio/indústria e serviços juntos — cada um pode cair em
+  // Anexo/alíquota efetiva diferente no Simples Nacional, então a alíquota do DAS
+  // usada para "limpar" o preço precisa ser separada por tipo, não uma só global.
+  const [aliquotaVendas, setAliquotaVendas] = useState(simplesRate ? String(simplesRate) : '');
+  const [aliquotaServicos, setAliquotaServicos] = useState(simplesRate ? String(simplesRate) : '');
+
+  const produtos = useMemo(() => {
+    const mapa = new Map();
+    saidasData.forEach(item => {
+      if (!item.prodNome) return;
+      const key = `${item.tipoDoc || 'NFe'}_${item.prodNome}`;
+      const atual = mapa.get(key);
+      if (!atual || (item.date || '') > (atual.date || '')) mapa.set(key, item);
+    });
+    return Array.from(mapa.values()).sort((a, b) => (a.prodNome || '').localeCompare(b.prodNome || ''));
+  }, [saidasData]);
+
+  const produtosFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return produtos;
+    return produtos.filter(p => (p.prodNome || '').toLowerCase().includes(termo));
+  }, [produtos, busca]);
+
+  const fmtR = v => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  if (empresaRegime !== 'simples') {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center text-slate-400">
+        <Tag className="w-10 h-10 mx-auto mb-3 opacity-30"/>
+        <p className="font-bold">Simulador de Precificação — Simples Nacional</p>
+        <p className="text-sm mt-1">Este simulador compara o preço de venda nas apurações "Por Dentro" e "Por Fora" do Simples Nacional. Faça login como empresa do Simples Nacional para usá-lo.</p>
+      </div>
+    );
+  }
+
+  if (produtos.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center text-slate-400">
+        <Tag className="w-10 h-10 mx-auto mb-3 opacity-30"/>
+        <p className="font-bold">Nenhum produto/serviço de saída carregado.</p>
+        <p className="text-sm mt-1">Importe XMLs de saída para simular a precificação.</p>
+      </div>
+    );
+  }
+
+  const calcUnit = selecionado
+    ? ((selecionado.prodValTotal && selecionado.prodQty) ? selecionado.prodValTotal / selecionado.prodQty : selecionado.prodValUnit)
+    : 0;
+
+  const isServico = selecionado?.tipoDoc === 'NFSe';
+  const aliquotaAtiva = parseFloat((isServico ? aliquotaServicos : aliquotaVendas).replace(',', '.')) || 0;
+
+  const ncmNorm = selecionado ? (selecionado.prodNCM || '').replace(/\D/g, '').padStart(8, '0') : '';
+  const nbsNorm = selecionado ? (selecionado.prodNBS || '').replace(/\D/g, '') : '';
+  const { reduction } = selecionado
+    ? resolveReducaoEfetiva(selecionado.prodNCM, selecionado.prodNome, selecionado.prodNBS, getCached(cnpj, ncmNorm, selecionado.prodNome || '', null), null, getCachedNbs(cnpj, nbsNorm), ncmConfirmacoes)
+    : { reduction: null };
+
+  const impact = selecionado
+    ? calculateReformImpact(
+        calcUnit, reformYear, selecionado.emitUF || 'RJ', selecionado.peerUF || 'RJ',
+        'simples', aliquotaAtiva, 'Desconhecido',
+        selecionado.prodNCM || '', selecionado.prodNBS || '', null, false,
+        selecionado.prodCFOP || '', selecionado.prodNome || '', reduction
+      )
+    : null;
+
+  // Preço limpo de hoje: preço atual menos a alíquota do DAS. É a partir dele que
+  // os dois cenários de apuração reconstroem o preço novo (embutindo o tributo de
+  // volta "por dentro", ou somando CBS/IBS "por fora").
+  const dasHoje = calcUnit * (aliquotaAtiva / 100);
+  const precoLimpo = calcUnit - dasHoje;
+
+  // DAS "Por Fora": reaproveita a configuração já feita na aba Simples Nacional
+  // (RBT12 + Anexo do segmento correspondente). Sem isso, o preço novo ficava
+  // contando só o CBS/IBS e esquecendo o resto do DAS.
+  const { rate: dasPorForaRate, anexo: anexoEscolhido, configurado: rbt12Configurado } =
+    calcDasPorForaRate(reformYear, isServico, segmentosSimples, rbt12RawSimples, aliquotaAtiva);
+  const dasPorFora = precoLimpo * dasPorForaRate;
+  const cbsPorFora = impact?.taxes?.cbs || 0;
+  const ibsPorFora = impact?.taxes?.ibs || 0;
+  const precoNovoPorFora = precoLimpo + dasPorFora + cbsPorFora + ibsPorFora;
+  const variacaoPorFora = calcUnit > 0 ? ((precoNovoPorFora - calcUnit) / calcUnit) * 100 : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 className="text-2xl font-bold text-[#222222] flex items-center gap-2"><Tag className="w-6 h-6 text-[#D9C14A]"/> Precificação — Reforma Tributária</h2>
+        <p className="text-slate-500 text-sm mt-1">Escolha um produto ou serviço e veja como o preço fica em cada tipo de apuração do Simples Nacional.</p>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p className="text-[10px] font-bold text-slate-500 uppercase mb-3">Alíquota do DAS hoje — por tipo de receita</p>
+        <p className="text-xs text-slate-400 mb-3 -mt-2">
+          Comércio/indústria e serviços podem cair em Anexos diferentes do Simples Nacional, com alíquotas efetivas
+          diferentes — por isso são configuradas separadamente aqui, em vez de usar uma única alíquota para tudo.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`p-3 rounded-lg border ${!isServico && selecionado ? 'border-[#D9C14A] bg-amber-50/40' : 'border-slate-200 bg-slate-50'}`}>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Vendas (Comércio/Indústria) %</label>
+            <div className="flex items-center gap-2">
+              <input type="number" step="0.01" min="0" max="33" value={aliquotaVendas}
+                onChange={e => setAliquotaVendas(e.target.value)}
+                className="w-full text-lg font-bold text-slate-800 bg-transparent border-none outline-none focus:ring-0"/>
+              <span className="text-slate-400 font-bold">%</span>
+            </div>
+          </div>
+          <div className={`p-3 rounded-lg border ${isServico ? 'border-[#D9C14A] bg-amber-50/40' : 'border-slate-200 bg-slate-50'}`}>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Serviços %</label>
+            <div className="flex items-center gap-2">
+              <input type="number" step="0.01" min="0" max="33" value={aliquotaServicos}
+                onChange={e => setAliquotaServicos(e.target.value)}
+                className="w-full text-lg font-bold text-slate-800 bg-transparent border-none outline-none focus:ring-0"/>
+              <span className="text-slate-400 font-bold">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Buscar Produto / Serviço</label>
+        <input
+          type="text" value={busca}
+          onChange={e => { setBusca(e.target.value); setSelecionado(null); }}
+          placeholder="Digite o nome do produto ou serviço..."
+          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#222222] font-medium text-slate-700"
+        />
+        {!selecionado && produtosFiltrados.length > 0 && (
+          <div className="mt-3 divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+            {produtosFiltrados.map(p => {
+              const unit = (p.prodValTotal && p.prodQty) ? p.prodValTotal / p.prodQty : p.prodValUnit;
+              return (
+                <button key={`${p.tipoDoc || 'NFe'}_${p.prodNome}`} onClick={() => setSelecionado(p)}
+                  className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-700 truncate">{p.prodNome}</p>
+                    <p className="text-[10px] text-slate-400">{p.tipoDoc === 'NFSe' ? `NBS: ${p.prodNBS || '—'} · Serviço` : `NCM: ${p.prodNCM || '—'}`}</p>
+                  </div>
+                  <span className="text-sm font-bold text-slate-600 shrink-0">R$ {unit.toFixed(2)}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {selecionado && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="font-bold text-slate-800 text-lg">{selecionado.prodNome}</h3>
+              <p className="text-xs text-slate-400">{selecionado.tipoDoc === 'NFSe' ? `NBS: ${selecionado.prodNBS || '—'} · Serviço` : `NCM: ${selecionado.prodNCM || '—'}`}</p>
+            </div>
+            <button onClick={() => setSelecionado(null)} className="text-xs text-slate-400 hover:text-slate-600 font-bold underline">Trocar produto</button>
+          </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+            <button onClick={() => setApuracao('dentro')}
+              className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${apuracao === 'dentro' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>
+              Apuração Por Dentro
+            </button>
+            <button onClick={() => setApuracao('fora')}
+              className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${apuracao === 'fora' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>
+              Apuração Por Fora
+            </button>
+          </div>
+
+          {apuracao === 'dentro' ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="w-5 h-5 text-emerald-600"/>
+                <span className="font-bold text-emerald-800">Preço não muda</span>
+              </div>
+              <p className="text-sm text-emerald-700 mb-4">
+                Na apuração "Por Dentro", o IBS/CBS ficam embutidos na mesma guia (DAS), na mesma alíquota efetiva de hoje.
+                O cliente não é cobrado separadamente — o preço parte do mesmo preço limpo de hoje e volta a embutir o
+                tributo (agora já com IBS/CBS dentro), resultando no mesmo preço de venda.
+              </p>
+              <div className="space-y-2 text-sm mb-5">
+                <div className="flex justify-between"><span className="text-slate-500">Preço Atual</span><span className="font-bold text-slate-700">{fmtR(calcUnit)}</span></div>
+                <div className="flex justify-between text-amber-700"><span>(–) DAS de hoje ({aliquotaAtiva}%)</span><span>- {fmtR(dasHoje)}</span></div>
+                <div className="flex justify-between border-t border-emerald-200 pt-2"><span className="font-bold text-slate-600">Preço Limpo</span><span className="font-bold text-slate-700">{fmtR(precoLimpo)}</span></div>
+                <div className="flex justify-between text-emerald-700"><span>(+) DAS reconstituído ({aliquotaAtiva}%, já com IBS/CBS embutidos)</span><span>+ {fmtR(dasHoje)}</span></div>
+              </div>
+              <div className="flex items-center gap-8 pt-4 border-t border-emerald-200">
+                <div>
+                  <p className="text-[10px] text-emerald-600 uppercase font-bold">Preço Atual</p>
+                  <p className="text-2xl font-black text-emerald-800">{fmtR(calcUnit)}</p>
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-emerald-300 rotate-0"/>
+                <div>
+                  <p className="text-[10px] text-emerald-600 uppercase font-bold">Preço Novo ({reformYear})</p>
+                  <p className="text-2xl font-black text-emerald-800">{fmtR(calcUnit)}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <Calculator className="w-5 h-5 text-blue-600"/>
+                <span className="font-bold text-blue-800">Composição do novo preço</span>
+                {reduction && !reduction._ambiguous && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase ${reduction.reducao === 100 ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-gray-100 text-blue-700 border-gray-300'}`}>
+                    {reduction.reducao === 100 ? 'Alíquota Zero' : `↓ ${reduction.reducao}% redução`} — {reduction.anexo}
+                  </span>
+                )}
+                {reduction?._ambiguous && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase bg-amber-100 text-amber-700 border-amber-300">
+                    {selecionado.tipoDoc === 'NFSe' ? '⚠ NBS não mapeado — confirmar na aba Conferência' : '⚠ NCM ambígua — confirmar na aba Insights'}
+                  </span>
+                )}
+              </div>
+              {!rbt12Configurado && (
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mb-3">
+                  RBT12 não configurado para o Anexo "{anexoEscolhido}" na aba Simples Nacional — usando a alíquota de hoje
+                  ({aliquotaAtiva}%) como aproximação para o DAS Por Fora. Configure lá para um cálculo mais preciso.
+                </p>
+              )}
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-slate-500">Preço Atual</span><span className="font-bold text-slate-700">{fmtR(calcUnit)}</span></div>
+                <div className="flex justify-between text-amber-700"><span>(–) DAS de hoje ({aliquotaAtiva}%)</span><span>- {fmtR(dasHoje)}</span></div>
+                <div className="flex justify-between border-t border-blue-200 pt-2"><span className="font-bold text-slate-600">Preço Limpo</span><span className="font-bold text-slate-700">{fmtR(precoLimpo)}</span></div>
+                <div className="flex justify-between text-indigo-700"><span>(+) DAS Por Fora — Anexo {anexoEscolhido} ({(dasPorForaRate * 100).toFixed(2)}%, sem IBS/CBS)</span><span>+ {fmtR(dasPorFora)}</span></div>
+                <div className="flex justify-between text-blue-700"><span>(+) CBS efetivo (à parte)</span><span>+ {fmtR(cbsPorFora)}</span></div>
+                <div className="flex justify-between text-blue-700"><span>(+) IBS efetivo (à parte)</span><span>+ {fmtR(ibsPorFora)}</span></div>
+              </div>
+              <div className="flex items-center gap-8 mt-5 pt-4 border-t border-blue-200">
+                <div>
+                  <p className="text-[10px] text-blue-600 uppercase font-bold">Preço Atual</p>
+                  <p className="text-2xl font-black text-blue-900">{fmtR(calcUnit)}</p>
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-blue-300"/>
+                <div>
+                  <p className="text-[10px] text-blue-600 uppercase font-bold">Preço Novo ({reformYear})</p>
+                  <p className="text-2xl font-black text-blue-900">{fmtR(precoNovoPorFora)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-blue-600 uppercase font-bold">Variação</p>
+                  <p className="text-2xl font-black text-blue-900">{variacaoPorFora.toFixed(1)}%</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
 const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
   const [selectedCompetence, setSelectedCompetence] = useState('TODAS');
   const [mapFocus, setMapFocus] = useState(null);
@@ -1818,17 +2186,17 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
       {/* Filtro competência */}
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-[#111827] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
+          <div className="bg-[#222222] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
           <span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setSelectedCompetence('TODAS')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
             TODO O PERÍODO
           </button>
           {competencias.map(c => (
             <button key={c} onClick={() => setSelectedCompetence(c)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===c?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===c?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
               {c}
             </button>
           ))}
@@ -1881,7 +2249,7 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
 
       {/* Mapa + Maiores clientes */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="text-base font-bold text-[#111827] flex items-center gap-2 mb-5 border-b border-slate-100 pb-3">
+        <h3 className="text-base font-bold text-[#222222] flex items-center gap-2 mb-5 border-b border-slate-100 pb-3">
           <MapIcon className="w-5 h-5 text-[#D9C14A]"/> Distribuição Geográfica de Vendas
         </h3>
         <div className="flex flex-col md:flex-row gap-6">
@@ -1895,7 +2263,7 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
                 if (!coords) return null;
                 return (
                   <CircleMarker key={uf} center={coords}
-                    pathOptions={{ color:'#111827', fillColor:'#D9C14A', fillOpacity:0.8, weight:1 }}
+                    pathOptions={{ color:'#222222', fillColor:'#D9C14A', fillOpacity:0.8, weight:1 }}
                     radius={Math.max((d.value/maxMapVal)*50, 12)}>
                     <Tooltip direction="top" offset={[0,-8]} opacity={1}>
                       <div className="text-center min-w-[100px]">
@@ -1943,7 +2311,7 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="font-bold text-[#111827] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
+          <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
             <Package className="w-5 h-5 text-[#D9C14A]"/> Produtos Mais Vendidos
           </h3>
           <div className="space-y-1">
@@ -1969,7 +2337,7 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="font-bold text-[#111827] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
+          <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
             <Building2 className="w-5 h-5 text-emerald-600"/> Maiores Fornecedores
           </h3>
           <div className="space-y-1">
@@ -2034,18 +2402,18 @@ const DashboardTab = memo(({ data, cnpjCache, accentColor, mapColor, isSaida, on
   return (
     <div className="space-y-6">
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><div className="bg-[#111827] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div><span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span></div>
+        <div className="flex items-center gap-3"><div className="bg-[#222222] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div><span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span></div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
-          {availableCompetences.map(comp => (<button key={comp} onClick={() => setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>))}
+          <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
+          {availableCompetences.map(comp => (<button key={comp} onClick={() => setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>))}
         </div>
       </div>
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-          <h2 className="text-xl font-bold text-[#111827] flex items-center gap-2"><MapIcon className="w-5 h-5" style={{color: accentColor}}/> Dashboard Geográfico</h2>
+          <h2 className="text-xl font-bold text-[#222222] flex items-center gap-2"><MapIcon className="w-5 h-5" style={{color: accentColor}}/> Dashboard Geográfico</h2>
           <div className="bg-slate-50 border border-slate-200 px-6 py-2 rounded-lg text-right">
             <div className="text-[10px] text-slate-500 font-bold uppercase">{isSaida ? 'Faturamento' : 'Volume de Compras'}</div>
-            <span className="text-2xl font-bold text-[#111827]">R$ {dash.totalRevenue.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+            <span className="text-2xl font-bold text-[#222222]">R$ {dash.totalRevenue.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
           </div>
         </div>
         <div className="flex flex-col md:flex-row gap-8">
@@ -2058,7 +2426,7 @@ const DashboardTab = memo(({ data, cnpjCache, accentColor, mapColor, isSaida, on
                 const coords = STATE_COORDINATES[uf];
                 if (!coords) return null;
                 return (
-                  <CircleMarker key={uf} center={coords} pathOptions={{ color:'#111827', fillColor: mapColor, fillOpacity:0.8, weight:1 }} radius={Math.max((d.value/maxVal)*50,15)}>
+                  <CircleMarker key={uf} center={coords} pathOptions={{ color:'#222222', fillColor: mapColor, fillOpacity:0.8, weight:1 }} radius={Math.max((d.value/maxVal)*50,15)}>
                     <Tooltip direction="top" offset={[0,-10]} opacity={1}>
                       <div className="text-center min-w-[100px]">
                         <strong className="text-lg text-slate-900 block border-b border-slate-100 pb-1 mb-1">{uf}</strong>
@@ -2103,7 +2471,7 @@ const DashboardTab = memo(({ data, cnpjCache, accentColor, mapColor, isSaida, on
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {dash.cfopsByRevenue.map((cfop, idx) => (
               <div key={idx} className="bg-white p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                <div className="flex justify-between items-start mb-2"><span className="bg-gray-100 text-[#111827] font-bold px-2 py-1 rounded text-sm">{cfop.code}</span><span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-200">{cfop.count} ops</span></div>
+                <div className="flex justify-between items-start mb-2"><span className="bg-gray-100 text-[#222222] font-bold px-2 py-1 rounded text-sm">{cfop.code}</span><span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-200">{cfop.count} ops</span></div>
                 <div className="text-2xl font-bold text-slate-800">R$ {cfop.revenue.toLocaleString('pt-BR',{notation:'compact'})}</div>
                 <div className="text-xs text-slate-500 mt-1">Total Movimentado</div>
               </div>
@@ -2166,10 +2534,10 @@ const ProductsTab = ({ data, cnpjCache, accentColor, lineColor, isSaida, onGerar
   return (
     <div className="space-y-6">
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><div className="bg-[#111827] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div><span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span></div>
+        <div className="flex items-center gap-3"><div className="bg-[#222222] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div><span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span></div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
-          {availableCompetences.map(comp => (<button key={comp} onClick={() => setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>))}
+          <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
+          {availableCompetences.map(comp => (<button key={comp} onClick={() => setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>))}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2177,7 +2545,7 @@ const ProductsTab = ({ data, cnpjCache, accentColor, lineColor, isSaida, onGerar
           <div className="flex items-center gap-3 mb-2"><div className="bg-slate-100 p-2 rounded-lg"><Package className="w-5 h-5" style={{color: accentColor}}/></div><span className="text-sm font-bold text-slate-500 uppercase">Mix de Produtos</span></div>
           <div className="text-3xl font-bold text-slate-800">{dash.uniqueProducts} <span className="text-sm font-normal text-slate-400">SKUs</span></div>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-t-4 border-[#111827]">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-t-4 border-[#222222]">
           <div className="flex items-center gap-3 mb-2"><div className="bg-gray-50 p-2 rounded-lg"><Layers className="w-5 h-5 text-blue-600"/></div><span className="text-sm font-bold text-slate-500 uppercase">Volume Físico</span></div>
           <div className="text-3xl font-bold text-slate-800">{smartNumber(dash.totalQty,'un')} <span className="text-sm font-normal text-slate-400">Un.</span></div>
         </div>
@@ -2290,7 +2658,7 @@ const ProductsTab = ({ data, cnpjCache, accentColor, lineColor, isSaida, onGerar
                 <div key={idx} className="space-y-1 p-2 hover:bg-slate-50 rounded-lg border border-transparent hover:border-slate-100">
                   <div className="flex justify-between text-sm items-center">
                     <div className="flex items-center gap-2 w-2/3"><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${bc}`}>{prod.classification}</span><span className="font-medium text-slate-700 truncate">{prod.name}</span></div>
-                    <span className="font-bold text-[#111827]">R$ {prod.revenue.toLocaleString('pt-BR',{notation:'compact'})}</span>
+                    <span className="font-bold text-[#222222]">R$ {prod.revenue.toLocaleString('pt-BR',{notation:'compact'})}</span>
                   </div>
                   <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${pct}%`, backgroundColor: accentColor}}></div></div>
                 </div>
@@ -2325,7 +2693,7 @@ const ProductsTab = ({ data, cnpjCache, accentColor, lineColor, isSaida, onGerar
                   </td>
                   <td className="px-6 py-3 text-right text-slate-600">{smartNumber(prod.qty,prod.unit)} {smartUnit(prod.unit)}</td>
                   <td className="px-6 py-3 text-right text-slate-600">R$ {(prod.revenue/(prod.qty||1)).toFixed(2)}</td>
-                  <td className="px-6 py-3 text-right font-bold text-[#111827]">R$ {prod.revenue.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                  <td className="px-6 py-3 text-right font-bold text-[#222222]">R$ {prod.revenue.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 </tr>
               ))}
             </tbody>
@@ -2362,7 +2730,7 @@ const NCMSelectorModal = ({ ncm, prodNome, opcoes, onSelecionar, onFechar }) => 
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase inline-block mb-1 ${op.reducao === 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-blue-700'}`}>
               {op.reducao === 100 ? 'Alíquota Zero (100%)' : `Redução ${op.reducao}%`} — {op.anexo}
             </span>
-            <p className="text-sm text-slate-700 group-hover:text-[#111827]">{op.desc}</p>
+            <p className="text-sm text-slate-700 group-hover:text-[#222222]">{op.desc}</p>
           </button>
         ))}
         <button
@@ -2382,13 +2750,7 @@ const NCMSelectorModal = ({ ncm, prodNome, opcoes, onSelecionar, onFechar }) => 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: INSIGHTS DE REDUÇÃƒO (NCM)
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const CONF_NCM_KEY = 'ncm_conferencia_v1';
-
-const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCached, saveDecision, deleteDecision, clearAllDecisions, loadingNcmDecisoes }) => {
-  const [confirmacoes, setConfirmacoes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(CONF_NCM_KEY) || '{}'); }
-    catch { return {}; }
-  });
+const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCached, saveDecision, deleteDecision, clearAllDecisions, loadingNcmDecisoes, getCachedNbs, saveDecisionNbs, loadingNbsDecisoes, confirmacoes, setConfirmacoes }) => {
   const [flow, setFlow] = useState('saidas');
   const [selectedCompetence, setSelectedCompetence] = useState('TODAS');
   const [vetForcados, setVetForcados] = useState(() => {
@@ -2445,10 +2807,7 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCa
 
   const fBRL = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const save = (obj) => {
-    setConfirmacoes(obj);
-    localStorage.setItem(CONF_NCM_KEY, JSON.stringify(obj));
-  };
+  const save = (obj) => setConfirmacoes(obj);
   const confirmar = (ncm) => save({ ...confirmacoes, [ncm]: 'ok' });
   const rejeitar  = (ncm) => save({ ...confirmacoes, [ncm]: 'rejected' });
   const resetar   = (ncm) => { const n = { ...confirmacoes }; delete n[ncm]; save(n); };
@@ -2549,6 +2908,40 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCa
       foraItems: Object.values(foraMap).sort((a, b) => b.faturamento - a.faturamento),
     };
   }, [currentData, getCached, cnpj, selectedCompetence, vetForcados, loadingNcmDecisoes]);
+
+  // Classifica cada NBS único (serviços/NFS-e) — direto pela tabela NBS_REDUCOES,
+  // ou pela decisão salva (nbsDecisoes); sem match nenhum vai para a fila de revisão.
+  const { itensNbs, pendentesNbs } = useMemo(() => {
+    if (loadingNbsDecisoes) return { itensNbs: [], pendentesNbs: [] };
+    const mapa = {};
+    const filaMap = {};
+    currentData.forEach(item => {
+      if (item.tipoDoc !== 'NFSe') return;
+      const nbs = (item.prodNBS || '').replace(/\D/g, '');
+      if (!nbs) return;
+
+      let red = getReducaoNBS(nbs);
+      if (!red) {
+        const cachedDec = getCachedNbs(cnpj, nbs);
+        if (cachedDec) red = { reducao: cachedDec.reducao, tipo: cachedDec.tipo, anexo: cachedDec.anexo, desc: cachedDec.desc };
+      }
+
+      if (!red) {
+        if (!filaMap[nbs]) filaMap[nbs] = { key: nbs, nbs, xProd: item.prodNome || '', faturamento: 0, count: 0 };
+        filaMap[nbs].faturamento += item.prodValTotal || 0;
+        filaMap[nbs].count += 1;
+        return;
+      }
+
+      if (!mapa[nbs]) mapa[nbs] = { nbs, nome: item.prodNome || '-', reduction: red, faturamento: 0, count: 0 };
+      mapa[nbs].faturamento += item.prodValTotal || 0;
+      mapa[nbs].count += 1;
+    });
+    return {
+      itensNbs: Object.values(mapa).sort((a, b) => b.faturamento - a.faturamento),
+      pendentesNbs: Object.values(filaMap).sort((a, b) => b.faturamento - a.faturamento),
+    };
+  }, [currentData, getCachedNbs, cnpj, loadingNbsDecisoes]);
 
   // Grupos de revisão em lote: todos os NCMs pendentes (agrupados por NCM)
   const gruposLote = useMemo(() => {
@@ -2668,13 +3061,13 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCa
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setSelectedCompetence('TODAS')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
             >TODAS</button>
             {availableCompetences.map(comp => (
               <button
                 key={comp}
                 onClick={() => setSelectedCompetence(comp)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
               >{comp}</button>
             ))}
           </div>
@@ -2899,13 +3292,63 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCa
           })}
         </div>
       )}
+
+      {/* ─── Serviços — Conferência NBS ─────────────────────────────────── */}
+      {(itensNbs.length > 0 || pendentesNbs.length > 0) && (
+        <div className="pt-4 mt-4 border-t border-slate-200 space-y-4">
+          <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-violet-500"/>
+            Serviços — Conferência NBS
+          </h3>
+
+          <NbsReviewQueue
+            items={pendentesNbs}
+            cnpj={cnpj}
+            saveDecision={saveDecisionNbs}
+            usuario={usuario}
+            competenciaVigencia={selectedCompetence === 'TODAS' ? null : selectedCompetence}
+          />
+
+          {itensNbs.length > 0 && (
+            <div className="space-y-2">
+              {itensNbs.map(item => (
+                <div key={item.nbs} className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex flex-col md:flex-row items-start md:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black bg-violet-800 text-white px-2 py-0.5 rounded font-mono">NBS {item.nbs}</span>
+                      {item.reduction.reducao === 100
+                        ? <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300 px-1.5 py-0.5 rounded">Alíquota Zero</span>
+                        : item.reduction.reducao > 0
+                          ? <span className="text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded">↓ {item.reduction.reducao}% redução</span>
+                          : <span className="text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 px-1.5 py-0.5 rounded">Sem redução</span>
+                      }
+                      <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-bold">{item.reduction.anexo}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700 mt-1 truncate" title={item.nome}>{item.nome}</p>
+                    {item.reduction.desc && (
+                      <div className="mt-1.5 bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Critério: </span>
+                        <span className="text-[10px] text-slate-600">{item.reduction.desc}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0 hidden md:block">
+                    <div className="text-sm font-bold text-slate-800">R$ {fBRL(item.faturamento)}</div>
+                    <div className="text-[10px] text-slate-400">{item.count} {item.count === 1 ? 'nota' : 'notas'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });
 
 const NCM_CONFIRMACOES_KEY = 'ncm_confirmacoes_v1';
 
-const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, reformYear, empresaRegime, cnpj, getCached }) => {
+const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, reformYear, empresaRegime, cnpj, getCached, getCachedNbs, ncmConfirmacoes }) => {
   const [flow, setFlow] = useState('saidas');
   const [modalTier, setModalTier] = useState(null); // null | 'zero' | 'reduced' | 'full'
   const [modalComp, setModalComp] = useState('TODAS');
@@ -2930,13 +3373,16 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
   const ncmGroups = useMemo(() => {
     const mapa = {};
     currentData.forEach(item => {
-      const ncm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0') || 'SEM_NCM';
+      const isServico = item.tipoDoc === 'NFSe';
+      const nbsNorm = (item.prodNBS || '').replace(/\D/g, '');
+      const ncm = isServico ? `NBS_${nbsNorm || 'SEM_NBS'}` : ((item.prodNCM || '').replace(/\D/g, '').padStart(8, '0') || 'SEM_NCM');
       if (!mapa[ncm]) {
         const xProd = item.prodNome || '';
-        const cached = getCached(cnpj, ncm, xProd, null);
-        const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null);
+        const cached = isServico ? null : getCached(cnpj, ncm, xProd, null);
+        const cachedNbs = isServico ? getCachedNbs(cnpj, nbsNorm) : null;
+        const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null, cachedNbs, ncmConfirmacoes);
         mapa[ncm] = {
-          ncm, ncmDisplay: item.prodNCM || 'S/NCM', nome: xProd || '-',
+          ncm, ncmDisplay: isServico ? `NBS ${nbsNorm || '—'}` : (item.prodNCM || 'S/NCM'), nome: xProd || '-',
           faturamento: 0,
           reduction,
           statusNCM: disc.status,
@@ -2948,7 +3394,7 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
       mapa[ncm].faturamento += item.prodValTotal || 0;
     });
     return Object.values(mapa).sort((a, b) => b.faturamento - a.faturamento);
-  }, [currentData, getCached, cnpj]);
+  }, [currentData, getCached, getCachedNbs, cnpj, ncmConfirmacoes]);
 
   const totalFat = useMemo(() => ncmGroups.reduce((a, g) => a + g.faturamento, 0), [ncmGroups]);
 
@@ -2981,13 +3427,16 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
     });
     const mapa = {};
     filtered.forEach(item => {
-      const ncm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0') || 'SEM_NCM';
+      const isServico = item.tipoDoc === 'NFSe';
+      const nbsNorm = (item.prodNBS || '').replace(/\D/g, '');
+      const ncm = isServico ? `NBS_${nbsNorm || 'SEM_NBS'}` : ((item.prodNCM || '').replace(/\D/g, '').padStart(8, '0') || 'SEM_NCM');
       if (!mapa[ncm]) {
         const xProd = item.prodNome || '';
-        const cached = getCached(cnpj, ncm, xProd, null);
-        const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null);
+        const cached = isServico ? null : getCached(cnpj, ncm, xProd, null);
+        const cachedNbs = isServico ? getCachedNbs(cnpj, nbsNorm) : null;
+        const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null, cachedNbs, ncmConfirmacoes);
         mapa[ncm] = {
-          ncm, ncmDisplay: item.prodNCM || 'S/NCM', nome: xProd || '-',
+          ncm, ncmDisplay: isServico ? `NBS ${nbsNorm || '—'}` : (item.prodNCM || 'S/NCM'), nome: xProd || '-',
           faturamento: 0,
           reduction,
           statusNCM: disc.status,
@@ -3002,13 +3451,13 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
     if (modalTier === 'zero')    return all.filter(g => (g.reduction?.reducao || 0) === 100);
     if (modalTier === 'reduced') return all.filter(g => (g.reduction?.reducao || 0) > 0 && (g.reduction?.reducao || 0) < 100);
     return all.filter(g => (g.reduction?.reducao || 0) === 0);
-  }, [modalTier, modalComp, currentData, getCached, cnpj]);
+  }, [modalTier, modalComp, currentData, getCached, getCachedNbs, cnpj, ncmConfirmacoes]);
 
   const modalTotalFat = modalGroups.reduce((a, g) => a + g.faturamento, 0);
 
   const TIER_CONFIG = {
     zero:    { label: 'Alíquota Zero',   badge: 'bg-emerald-100 text-emerald-800', bar: 'bg-emerald-500', border: 'border-emerald-200', hdr: 'bg-emerald-50', perc: 'text-emerald-600', fat: fatZero,    count: tiersZero.length,    pct: percZero },
-    reduced: { label: 'Redução de 60%',  badge: 'bg-gray-100 text-[#111827]',       bar: 'bg-[#111827]',    border: 'border-gray-200',    hdr: 'bg-gray-50',    perc: 'text-blue-600',    fat: fatReduced, count: tiersReduced.length, pct: percReduced },
+    reduced: { label: 'Redução de 60%',  badge: 'bg-gray-100 text-[#222222]',       bar: 'bg-[#222222]',    border: 'border-gray-200',    hdr: 'bg-gray-50',    perc: 'text-blue-600',    fat: fatReduced, count: tiersReduced.length, pct: percReduced },
     full:    { label: 'Alíquota Cheia',  badge: 'bg-slate-100 text-slate-700',     bar: 'bg-slate-400',   border: 'border-slate-200',   hdr: 'bg-slate-50',   perc: 'text-slate-600',   fat: fatFull,    count: tiersFull.length,    pct: percFull },
   };
 
@@ -3042,17 +3491,17 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
     <div className="space-y-5">
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#111827] to-[#1a1a1a] p-6 rounded-xl text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#222222] to-[#1a1a1a] p-6 rounded-xl text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2"><TrendingUp className="w-6 h-6"/> Triagem da Carteira — LC 214/2025</h3>
           <p className="text-gray-300 text-sm mt-1">Classificação do faturamento por faixa de alíquota da reforma tributária.</p>
         </div>
         <div className="flex gap-3 items-center flex-wrap">
           <div className="flex bg-white/10 p-1 rounded-lg border border-white/20">
-            <button onClick={() => setFlow('saidas')} className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${flow==='saidas'?'bg-white text-[#111827] shadow-sm':'text-gray-300 hover:bg-white/10'}`}>Nas Vendas</button>
-            <button onClick={() => setFlow('entradas')} className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${flow==='entradas'?'bg-white text-[#111827] shadow-sm':'text-gray-300 hover:bg-white/10'}`}>Nas Compras</button>
+            <button onClick={() => setFlow('saidas')} className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${flow==='saidas'?'bg-white text-[#222222] shadow-sm':'text-gray-300 hover:bg-white/10'}`}>Nas Vendas</button>
+            <button onClick={() => setFlow('entradas')} className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${flow==='entradas'?'bg-white text-[#222222] shadow-sm':'text-gray-300 hover:bg-white/10'}`}>Nas Compras</button>
           </div>
-          <button onClick={exportarExcel} className="px-4 py-2 rounded-md text-sm font-bold bg-white text-[#111827] shadow-sm hover:bg-gray-50">Exportar Excel</button>
+          <button onClick={exportarExcel} className="px-4 py-2 rounded-md text-sm font-bold bg-white text-[#222222] shadow-sm hover:bg-gray-50">Exportar Excel</button>
         </div>
       </div>
 
@@ -3107,7 +3556,7 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
               <div className="flex flex-wrap gap-2">
                 {competencias.map(c => (
                   <button key={c} onClick={() => setModalComp(c)}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg border transition-colors ${modalComp===c?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                    className={`px-3 py-1 text-xs font-bold rounded-lg border transition-colors ${modalComp===c?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
                     {c === 'TODAS' ? 'Todo Período' : c}
                   </button>
                 ))}
@@ -3151,7 +3600,7 @@ const ReductionInsightsTab = memo(({ saidasData, entradasData, simplesRate, refo
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: APURAÇÃƒO
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYear, cnpj, getCached }) => {
+const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYear, cnpj, getCached, getCachedNbs, ncmConfirmacoes }) => {
   const rules = REFORM_SCHEDULE[reformYear] || { cbs: 0, ibs: 0 };
   const [filtroReducao, setFiltroReducao] = useState('TODAS'); // 'TODAS' | '0' | '60' | '100'
   const [filtroFluxoResumo, setFiltroFluxoResumo] = useState('TODOS'); // 'TODOS' | 'saida' | 'entrada'
@@ -3162,7 +3611,7 @@ const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYea
   // 100% confirmada (por match literal ou decisão salva na fila de revisão)
   // caem na alíquota cheia por padrão.
   const itensSaida = useMemo(() => saidasData.map(item => {
-    const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0'), item.prodNome || '', null), null);
+    const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0'), item.prodNome || '', null), null, getCachedNbs(cnpj, (item.prodNBS || '').replace(/\D/g, '')), ncmConfirmacoes);
     const impact = calculateReformImpact(
       item.prodValTotal, reformYear,
       item.emitUF || 'RJ', item.peerUF || 'RJ',
@@ -3170,12 +3619,12 @@ const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYea
       item.prodCFOP || '', item.prodNome || '', reduction
     );
     return { ...item, impact, reducaoPerc: impact.reducaoPerc || 0 };
-  }), [saidasData, reformYear, getCached, cnpj]);
+  }), [saidasData, reformYear, getCached, getCachedNbs, cnpj, ncmConfirmacoes]);
 
   // â"€â"€ Categoriza cada item de entrada com seu impacto e % de redução â"€â"€
   const itensEntrada = useMemo(() => entradasData.map(item => {
     const peerRegime = item.impostoDestacado?.temDados ? 'normal' : 'simples';
-    const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0'), item.prodNome || '', null), null);
+    const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCached(cnpj, (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0'), item.prodNome || '', null), null, getCachedNbs(cnpj, (item.prodNBS || '').replace(/\D/g, '')), ncmConfirmacoes);
     const impact = calculateReformImpact(
       item.prodValTotal, reformYear,
       item.peerUF || 'RJ', item.emitUF || 'RJ',
@@ -3184,7 +3633,7 @@ const ApuracaoTab = memo(({ saidasData, entradasData, creditosManuais, reformYea
       item.prodCFOP || '', item.prodNome || '', reduction
     );
     return { ...item, impact, reducaoPerc: impact.reducaoPerc || 0 };
-  }), [entradasData, reformYear, getCached, cnpj]);
+  }), [entradasData, reformYear, getCached, getCachedNbs, cnpj, ncmConfirmacoes]);
 
  // â"€â"€ Filtra conforme seleção â"€â"€ (memoizado para referência estável)
 const reducaoNumero = useMemo(() =>
@@ -3283,7 +3732,7 @@ const creditos = useMemo(() => {
       id: 'TODAS',
       label: 'Todas as Alíquotas',
       badge: itensSaida.length + itensEntrada.length,
-      bg: 'bg-[#111827]',
+      bg: 'bg-[#222222]',
       text: 'text-white',
       border: 'border-transparent',
       inativo: 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
@@ -3303,11 +3752,11 @@ const creditos = useMemo(() => {
       id: '60',
       label: 'Redução 60%',
       badge: contagens.r60,
-      bg: 'bg-[#111827]',
+      bg: 'bg-[#222222]',
       text: 'text-white',
       border: 'border-transparent',
       inativo: 'bg-white text-blue-700 border-gray-200 hover:bg-gray-50',
-      dot: 'bg-[#111827]',
+      dot: 'bg-[#222222]',
     },
     {
       id: '100',
@@ -3496,7 +3945,7 @@ const creditos = useMemo(() => {
                 { id: 'entrada', label: 'Somente Entradas' },
               ].map(f => (
                 <button key={f.id} onClick={() => setFiltroFluxoResumo(f.id)}
-                  className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${filtroFluxoResumo === f.id ? 'bg-[#111827] text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${filtroFluxoResumo === f.id ? 'bg-[#222222] text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
                   {f.label}
                 </button>
               ))}
@@ -3516,7 +3965,7 @@ const creditos = useMemo(() => {
             <tbody className="divide-y divide-slate-100">
               {[
                 { label: 'Alíquota Cheia (sem redução)', perc: 0, dotColor: 'bg-slate-400' },
-                { label: 'Redução 60% (LC 214/2025)',    perc: 60, dotColor: 'bg-[#111827]' },
+                { label: 'Redução 60% (LC 214/2025)',    perc: 60, dotColor: 'bg-[#222222]' },
                 { label: 'Alíquota Zero / Isenção 100%', perc: 100, dotColor: 'bg-emerald-500' },
               ].map(({ label, perc, dotColor }) => {
                 const saidaFilt   = filtroFluxoResumo === 'entrada' ? [] : itensSaida.filter(i => i.reducaoPerc === perc);
@@ -3747,7 +4196,7 @@ const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxa
             return (
               <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-lg flex-1 min-w-[180px]">
                 <div className="text-xs font-bold text-slate-500 uppercase mb-2">{forma}</div>
-                <div className="text-xl font-black text-[#111827]">{fmtBRL(valor)}</div>
+                <div className="text-xl font-black text-[#222222]">{fmtBRL(valor)}</div>
                 <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden"><div className="bg-green-500 h-full rounded-full" style={{width: `${pct}%`}}></div></div>
                 <div className="text-[10px] text-slate-400 font-bold mt-1 text-right">{pct.toFixed(1)}%</div>
               </div>
@@ -3780,7 +4229,7 @@ const PainelInteligenteTab = memo(({ saidasData, entradasData, simplesRate, taxa
             {kpis.premiumProducts.map((p, i) => (
               <div key={i} className="flex justify-between items-center text-sm border-b border-slate-50 pb-2 last:border-0">
                 <span className="font-medium text-slate-600 truncate mr-2">{p.nome}</span>
-                <div className="font-bold text-[#111827]">{fmtBRL(p.price)} <span className="text-[10px] text-slate-400 font-normal">/{p.unit}</span></div>
+                <div className="font-bold text-[#222222]">{fmtBRL(p.price)} <span className="text-[10px] text-slate-400 font-normal">/{p.unit}</span></div>
               </div>
             ))}
           </div>
@@ -3799,6 +4248,8 @@ const SimplesNacionalTab = ({
   simplesRate = 0,
   cnpj,
   getCached: getCachedSimples,
+  getCachedNbs,
+  ncmConfirmacoes,
 }) => {
 
 const CFOPS_ST = new Set([
@@ -3836,7 +4287,7 @@ const CFOPS_ST = new Set([
 
   const addSeg = () => {
     if (segmentos.length >= 4) return;
-    setSegmentos(p => [...p, { id: Date.now(), anexo: 'anexo1', fatRaw: '', caixaRaw: '', showST: false, secaoIRaw: '', secaoIIRaw: '' }]);
+    setSegmentos(p => [...p, { id: Date.now(), anexo: 'anexo1', fatRaw: '', caixaRaw: '', showST: false, secaoIRaw: '', secaoIIRaw: '', issRetRaw: '' }]);
   };
   const removeSeg = id => { if (segmentos.length > 1) setSegmentos(p => p.filter(s => s.id !== id)); };
   const updSeg = (id, f, v) => setSegmentos(p => p.map(s => s.id === id ? {...s, [f]: v} : s));
@@ -3850,14 +4301,19 @@ const CFOPS_ST = new Set([
 
     if (isServico) {
       // Serviços: soma apenas itens NFS-e
-      const total = saidasData
-        .filter(i => i.tipoDoc === 'NFSe')
-        .reduce((acc, i) => acc + (i.prodValTotal || 0), 0);
+      const nfseItens = saidasData.filter(i => i.tipoDoc === 'NFSe');
+      const total = nfseItens.reduce((acc, i) => acc + (i.prodValTotal || 0), 0);
       if (total <= 0) return;
+      // ISS retido pelo tomador (tpRetISSQN=2 no XML) — essa fatia de receita
+      // é excluída do percentual de ISS no cálculo do DAS (ver calcSeg).
+      const issRet = nfseItens
+        .filter(i => i.issRetido)
+        .reduce((acc, i) => acc + (i.prodValTotal || 0), 0);
       setSegmentos(p => p.map(s => s.id === segId ? {
         ...s,
         fatRaw: total.toLocaleString('pt-BR', {minimumFractionDigits:2}),
         showST: false,
+        issRetRaw: issRet > 0 ? issRet.toLocaleString('pt-BR', {minimumFractionDigits:2}) : '',
       } : s));
     } else {
       // Comércio / Indústria: soma NF-e com CFOPs de venda — exclui remessas/retornos sem incidência
@@ -3896,14 +4352,14 @@ const CFOPS_ST = new Set([
     let dCbs=0, dIbs=0, cCbs=0, cIbs=0;
     saidasData.forEach(item => {
       const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
-      const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedSimples(cnpj, ncmNorm, item.prodNome || '', null), null);
+      const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedSimples(cnpj, ncmNorm, item.prodNome || '', null), null, getCachedNbs(cnpj, (item.prodNBS || '').replace(/\D/g, '')), ncmConfirmacoes);
       const imp = calculateReformImpact(item.prodValTotal, reformYear, item.emitUF||'RJ', item.peerUF||'RJ', 'normal', 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', null, false, item.prodCFOP||'', item.prodNome||'', reduction);
       dCbs += imp.taxes.cbs; dIbs += imp.taxes.ibs;
     });
     entradasData.forEach(item => {
       const regime = item.impostoDestacado?.temDados ? 'normal' : 'simples';
       const ncmNorm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
-      const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedSimples(cnpj, ncmNorm, item.prodNome || '', null), null);
+      const { reduction } = resolveReducaoEfetiva(item.prodNCM, item.prodNome, item.prodNBS, getCachedSimples(cnpj, ncmNorm, item.prodNome || '', null), null, getCachedNbs(cnpj, (item.prodNBS || '').replace(/\D/g, '')), ncmConfirmacoes);
       const imp = calculateReformImpact(item.prodValTotal, reformYear, item.peerUF||'RJ', item.emitUF||'RJ', regime, 0, 'Regime Normal', item.prodNCM, item.prodNBS||'', item.impostoDestacado||null, true, item.prodCFOP||'', item.prodNome||'', reduction);
       cCbs += imp.taxes.cbs; cIbs += imp.taxes.ibs;
     });
@@ -3915,7 +4371,7 @@ const CFOPS_ST = new Set([
     });
     const saldoTotal = (dCbs - cCbs) + (dIbs - cIbs);
     return { debito:{cbs:dCbs,ibs:dIbs}, credito:{cbs:cCbs,ibs:cIbs}, saldo:{cbs:dCbs-cCbs,ibs:dIbs-cIbs}, total:saldoTotal };
-  }, [saidasData, entradasData, creditosManuais, reformYear, getCachedSimples, cnpj]);
+  }, [saidasData, entradasData, creditosManuais, reformYear, getCachedSimples, getCachedNbs, cnpj, ncmConfirmacoes]);
 
   // Cálculo principal
   const resultado = useMemo(() => {
@@ -3962,11 +4418,21 @@ const CFOPS_ST = new Set([
         valor: (sI.breakdown[i]?.valor||0) + (sII.breakdown[i]?.valor||0)
       }));
 
+      // ISS retido na fonte pelo tomador (tpRetISSQN=2 no XML): a legislação do
+      // Simples Nacional exclui o percentual de ISS do DAS para essa fatia de
+      // receita, já que o município já recebeu o tributo diretamente do tomador.
+      const issIdx = tab.tributos.indexOf('ISS');
+      const issRetRevenue = Math.min(parseVal(seg.issRetRaw), fat);
+      const issRetDeduzido = (issIdx >= 0 && issRetRevenue > 0)
+        ? issRetRevenue * aliqEf * (faixa.rep[issIdx] || 0)
+        : 0;
+
       return {
         id:seg.id, anexo:seg.anexo, tab, faixa, faixaIdx, aliqEf,
         fat, r1, r2, hasST,
-        das_d: sI_d.das + sII_d.das,
-        das_f: sI_f.das + sII_f.das,
+        das_d: Math.max(0, sI_d.das + sII_d.das - issRetDeduzido),
+        das_f: Math.max(0, sI_f.das + sII_f.das - issRetDeduzido),
+        issRetDeduzido,
         bd_d: mkBD(sI_d, sII_d),
         bd_f: mkBD(sI_f, sII_f),
         sI_d, sII_d, sI_f, sII_f
@@ -4095,7 +4561,7 @@ const CFOPS_ST = new Set([
       <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
         <button onClick={() => setMainTab('dentro')}
           className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${
-            mainTab==='dentro' ? 'bg-[#111827] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+            mainTab==='dentro' ? 'bg-[#222222] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
           }`}>
           <Percent className="w-4 h-4"/>
           Simples Por Dentro
@@ -4161,7 +4627,7 @@ const CFOPS_ST = new Set([
 
                 {/* Card Por Dentro */}
                 <div className="rounded-xl border border-slate-300 overflow-hidden shadow-sm">
-                  <div className="bg-[#111827] px-4 py-3 text-white">
+                  <div className="bg-[#222222] px-4 py-3 text-white">
                     <p className="text-xs font-black uppercase tracking-wide opacity-80">IBS/CBS no DAS</p>
                     <p className="text-base font-black">Simples Por Dentro</p>
                   </div>
@@ -4175,7 +4641,7 @@ const CFOPS_ST = new Set([
                       <span className="text-xs text-slate-500 font-semibold">IBS/CBS</span>
                       <span className="text-xs font-bold text-slate-400 italic">embutido no DAS</span>
                     </div>
-                    <div className="rounded-lg px-3 py-2.5 bg-slate-900 border-t-2 border-[#111827]">
+                    <div className="rounded-lg px-3 py-2.5 bg-slate-900 border-t-2 border-[#222222]">
                       <p className="text-[10px] font-bold uppercase mb-0.5 text-white/70">Total</p>
                       <p className="text-2xl font-black text-white">{fmtR(cmpTotDentro)}</p>
                       {cmpDelta(cmpTotDentro, cmpDasAtual) && (
@@ -4229,7 +4695,7 @@ const CFOPS_ST = new Set([
                     <tr>
                       <th className="px-4 py-3 text-left">Componente</th>
                       <th className="px-4 py-3 text-right text-slate-600">Atual</th>
-                      <th className="px-4 py-3 text-right text-[#111827]">Por Dentro</th>
+                      <th className="px-4 py-3 text-right text-[#222222]">Por Dentro</th>
                       <th className="px-4 py-3 text-right text-emerald-700">Por Fora</th>
                     </tr>
                   </thead>
@@ -4293,7 +4759,7 @@ const CFOPS_ST = new Set([
       {/* Banner explicativo — só nas abas Por Dentro / Por Fora */}
       {mainTab !== 'comparativo' && (
       <div className={`px-4 py-3 rounded-xl border text-sm font-medium flex items-start gap-2 ${
-        isFora ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-gray-50 border-gray-200 text-[#111827]'
+        isFora ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-gray-50 border-gray-200 text-[#222222]'
       }`}>
         <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-current"/>
         {isFora
@@ -4320,7 +4786,7 @@ const CFOPS_ST = new Set([
           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">RBT12 — Receita Bruta 12 meses (R$)</label>
           <input type="text" inputMode="decimal" placeholder="Ex: 1.685.719,18"
             value={rbt12Raw} onChange={e => setRbt12Raw(e.target.value)}
-            className="w-full p-3 text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#111827]"/>
+            className="w-full p-3 text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#222222]"/>
           <p className="text-[10px] text-slate-400 mt-1">Determina a faixa e alíquota efetiva de todos os segmentos.</p>
         </div>
 
@@ -4333,7 +4799,7 @@ const CFOPS_ST = new Set([
             </h5>
             {segmentos.length < 4 && (
               <button onClick={addSeg}
-                className="flex items-center gap-2 bg-[#111827] hover:bg-[#0d0d0d] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
+                className="flex items-center gap-2 bg-[#222222] hover:bg-[#0d0d0d] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
                 + Adicionar Segmento
               </button>
             )}
@@ -4363,7 +4829,7 @@ const CFOPS_ST = new Set([
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Atividade / Anexo</label>
                       <select value={seg.anexo} onChange={e => updSeg(seg.id, 'anexo', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#111827] font-bold text-slate-700 text-sm">
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#222222] font-bold text-slate-700 text-sm">
                         <option value="anexo1">Comércio — Anexo I</option>
                         <option value="anexo2">Indústria — Anexo II</option>
                         <option value="anexo3">Serviços Geral — Anexo III</option>
@@ -4378,7 +4844,7 @@ const CFOPS_ST = new Set([
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Faturamento do Segmento (R$)</label>
                       <input type="text" inputMode="decimal" placeholder="Ex: 241.512,52"
                         value={seg.fatRaw} onChange={e => updSeg(seg.id, 'fatRaw', e.target.value)}
-                        className="w-full p-2.5 font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#111827] text-slate-800"/>
+                        className="w-full p-2.5 font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#222222] text-slate-800"/>
                       {ANEXOS_SERVICO.has(seg.anexo) && saidasData.some(i => i.tipoDoc === 'NFSe') && (
                         <div className="mt-1.5 flex items-center gap-2">
                           <button onClick={() => autoDetect(seg.id)}
@@ -4464,6 +4930,41 @@ const CFOPS_ST = new Set([
                     </div>
                   )}
 
+                  {/* ISS retido na fonte pelo tomador — abate do DAS */}
+                  {ANEXOS_SERVICO.has(seg.anexo) && (tabela?.tributos?.includes('ISS') ?? false) && (
+                    <div className="border border-blue-200 rounded-xl overflow-hidden">
+                      <div className="bg-blue-50 px-4 py-2.5 flex items-center justify-between border-b border-blue-200 flex-wrap gap-2">
+                        <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5">
+                          <CheckCircle className="w-3.5 h-3.5"/> ISS Retido na Fonte pelo Tomador
+                        </span>
+                        {saidasData.some(i => i.tipoDoc === 'NFSe' && i.issRetido) && (
+                          <button onClick={() => autoDetect(seg.id)}
+                            className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-colors">
+                            <RefreshCw className="w-3 h-3"/> Auto-detectar pelos XMLs
+                          </button>
+                        )}
+                      </div>
+                      <div className="p-4 bg-white">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          Receita com ISS retido (tpRetISSQN=2) <span className="font-normal text-slate-400">(exclui ISS do DAS)</span>
+                        </label>
+                        <input type="text" inputMode="decimal" placeholder="Ex: 18.480,00"
+                          value={seg.issRetRaw}
+                          onChange={e => updSeg(seg.id, 'issRetRaw', e.target.value)}
+                          className="w-full p-2.5 font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-400 text-slate-800 text-sm"/>
+                        {(() => {
+                          const segResultado = resultado?.segs?.find(s => s.id === seg.id);
+                          if (!segResultado || !(segResultado.issRetDeduzido > 0)) return null;
+                          return (
+                            <p className="text-[10px] text-blue-600 mt-1.5 font-bold">
+                              Dedução no DAS: {fmtR(segResultado.issRetDeduzido)}
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
                   {!hasICMS && (
                     <div className="text-[10px] bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-emerald-700 font-bold flex items-center gap-2">
                       <CheckCircle className="w-3 h-3"/> ICMS extinto em {anoTabela} — sem separação por ST
@@ -4498,7 +4999,7 @@ const CFOPS_ST = new Set([
               <>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
                   <p className="text-[10px] font-bold uppercase text-slate-400">Faixa Enquadrada</p>
-                  <p className="text-4xl font-black text-[#111827]">{resultado.segs[0].faixaIdx + 1}ª</p>
+                  <p className="text-4xl font-black text-[#222222]">{resultado.segs[0].faixaIdx + 1}ª</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
                   <p className="text-[10px] font-bold uppercase text-slate-400">Alíq. Nominal</p>
@@ -4513,7 +5014,7 @@ const CFOPS_ST = new Set([
               <>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
                   <p className="text-[10px] font-bold uppercase text-slate-400">Segmentos</p>
-                  <p className="text-4xl font-black text-[#111827]">{resultado.segs.length}</p>
+                  <p className="text-4xl font-black text-[#222222]">{resultado.segs.length}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center col-span-2">
                   <p className="text-[10px] font-bold uppercase text-slate-400">Atividades</p>
@@ -4523,7 +5024,7 @@ const CFOPS_ST = new Set([
                 </div>
               </>
             )}
-            <div className={`rounded-xl p-4 shadow-lg text-center ${isFora ? 'bg-emerald-700' : 'bg-[#111827]'}`}>
+            <div className={`rounded-xl p-4 shadow-lg text-center ${isFora ? 'bg-emerald-700' : 'bg-[#222222]'}`}>
               <p className="text-[10px] font-bold uppercase text-gray-300">DAS a Recolher</p>
               <p className="text-3xl font-black text-white">{fmtR(totalDAS)}</p>
               <p className="text-[10px] text-gray-300 mt-0.5">{isFora ? 'Sem IBS/CBS' : 'Com IBS/CBS'}</p>
@@ -4615,7 +5116,7 @@ const CFOPS_ST = new Set([
                     <th className="px-5 py-3 text-right">Faturamento</th>
                     <th className="px-5 py-3 text-right">Faixa</th>
                     <th className="px-5 py-3 text-right">Alíq. Efetiva</th>
-                    <th className="px-5 py-3 text-right text-[#111827]">DAS</th>
+                    <th className="px-5 py-3 text-right text-[#222222]">DAS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -4625,10 +5126,10 @@ const CFOPS_ST = new Set([
                       <td className="px-5 py-3 text-right text-slate-600">{fmtR(seg.fat)}</td>
                       <td className="px-5 py-3 text-right font-bold text-slate-600">{seg.faixaIdx+1}ª</td>
                       <td className="px-5 py-3 text-right text-slate-600">{(seg.aliqEf*100).toFixed(4)}%</td>
-                      <td className="px-5 py-3 text-right font-black text-[#111827]">{fmtR(isFora ? seg.das_f : seg.das_d)}</td>
+                      <td className="px-5 py-3 text-right font-black text-[#222222]">{fmtR(isFora ? seg.das_f : seg.das_d)}</td>
                     </tr>
                   ))}
-                  <tr className="bg-[#111827] text-white">
+                  <tr className="bg-[#222222] text-white">
                     <td className="px-5 py-3 font-black">TOTAL DAS</td>
                     <td className="px-5 py-3 text-right font-bold">{fmtR(resultado.totalFat)}</td>
                     <td className="px-5 py-3"></td>
@@ -4663,7 +5164,7 @@ const CFOPS_ST = new Set([
                           <th className="px-4 py-2 text-left">Seção</th>
                           <th className="px-4 py-2 text-right">Receita</th>
                           <th className="px-4 py-2 text-right text-red-500">ICMS no DAS</th>
-                          <th className="px-4 py-2 text-right text-[#111827]">DAS</th>
+                          <th className="px-4 py-2 text-right text-[#222222]">DAS</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-amber-100">
@@ -4673,13 +5174,13 @@ const CFOPS_ST = new Set([
                           <td className="px-4 py-2.5 text-right font-bold text-red-600">
                             {fmtR((isFora ? seg.sI_f : seg.sI_d).breakdown.find(b=>b.nome==='ICMS')?.valor||0)}
                           </td>
-                          <td className="px-4 py-2.5 text-right font-bold text-[#111827]">{fmtR(isFora ? seg.sI_f.das : seg.sI_d.das)}</td>
+                          <td className="px-4 py-2.5 text-right font-bold text-[#222222]">{fmtR(isFora ? seg.sI_f.das : seg.sI_d.das)}</td>
                         </tr>
                         <tr className="hover:bg-amber-50/50">
                           <td className="px-4 py-2.5 text-slate-600">Seção II — ST ICMS</td>
                           <td className="px-4 py-2.5 text-right">{fmtR(seg.r2)}</td>
                           <td className="px-4 py-2.5 text-right font-bold text-emerald-600">R$ 0,00</td>
-                          <td className="px-4 py-2.5 text-right font-bold text-[#111827]">{fmtR(isFora ? seg.sII_f.das : seg.sII_d.das)}</td>
+                          <td className="px-4 py-2.5 text-right font-bold text-[#222222]">{fmtR(isFora ? seg.sII_f.das : seg.sII_d.das)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -4688,8 +5189,10 @@ const CFOPS_ST = new Set([
 
                 <div className="space-y-3">
                   {bd.map(({ nome, rep, valor }) => {
-                    const pct = dasSeg > 0 ? (valor / dasSeg) * 100 : 0;
                     const isIBSCBS = nome === 'IBS' || nome === 'CBS';
+                    const issDeduzido = nome === 'ISS' ? Math.min(seg.issRetDeduzido || 0, valor) : 0;
+                    const valorLiquido = valor - issDeduzido;
+                    const pct = dasSeg > 0 ? (valorLiquido / dasSeg) * 100 : 0;
                     return (
                       <div key={nome}>
                         <div className="flex items-center justify-between mb-1">
@@ -4699,15 +5202,27 @@ const CFOPS_ST = new Set([
                             {isFora && isIBSCBS && (
                               <span className="text-[9px] bg-emerald-100 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">excluído do DAS</span>
                             )}
+                            {issDeduzido > 0 && (
+                              <span className="text-[9px] bg-blue-100 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold">
+                                {issDeduzido >= valor ? 'retido na fonte — não incidência' : `R$ ${fmtR(issDeduzido)} retido na fonte`}
+                              </span>
+                            )}
                           </div>
                           <div className="text-right">
-                            <span className={`text-sm font-bold ${isFora && isIBSCBS ? 'text-slate-300 line-through' : 'text-slate-800'}`}>{fmtR(valor)}</span>
+                            {issDeduzido > 0 ? (
+                              <>
+                                <span className="text-xs text-slate-300 line-through mr-1.5">{fmtR(valor)}</span>
+                                <span className="text-sm font-bold text-slate-800">{fmtR(valorLiquido)}</span>
+                              </>
+                            ) : (
+                              <span className={`text-sm font-bold ${isFora && isIBSCBS ? 'text-slate-300 line-through' : 'text-slate-800'}`}>{fmtR(valor)}</span>
+                            )}
                             <span className="text-[10px] text-slate-400 ml-2">Ef.: {(seg.aliqEf * rep * 100).toFixed(4)}%</span>
                           </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${isFora && isIBSCBS ? 'opacity-20' : ''} ${
-                            nome==='CBS'?'bg-[#111827]':nome==='IBS'?'bg-purple-500':
+                            nome==='CBS'?'bg-[#222222]':nome==='IBS'?'bg-purple-500':
                             nome==='CPP'?'bg-indigo-500':nome==='ICMS'?'bg-red-400':
                             nome==='ISS'?'bg-amber-400':nome==='IPI'?'bg-orange-400':'bg-slate-400'
                           }`} style={{width:`${pct}%`}}/>
@@ -4717,7 +5232,7 @@ const CFOPS_ST = new Set([
                   })}
                   <div className="pt-3 border-t border-slate-100 flex justify-between font-black text-lg">
                     <span className="text-slate-600">DAS {isFora ? 'Por Fora' : 'Por Dentro'}</span>
-                    <span className="text-[#111827]">{fmtR(dasSeg)}</span>
+                    <span className="text-[#222222]">{fmtR(dasSeg)}</span>
                   </div>
                 </div>
               </div>
@@ -4745,7 +5260,7 @@ const CFOPS_ST = new Set([
                     {seg.tab.faixas.map((f, i) => {
                       const ativa = i === seg.faixaIdx;
                       return (
-                        <tr key={i} className={ativa ? 'bg-[#111827] text-white' : 'hover:bg-slate-50'}>
+                        <tr key={i} className={ativa ? 'bg-[#222222] text-white' : 'hover:bg-slate-50'}>
                           <td className={`px-4 py-2 font-black text-base ${ativa ? 'text-white' : 'text-slate-500'}`}>{i+1}ª</td>
                           <td className="px-4 py-2">{f.limite.toLocaleString('pt-BR',{style:'currency',currency:'BRL',notation:'compact'})}</td>
                           <td className="px-4 py-2 font-bold">{(f.nominal*100).toFixed(2)}%</td>
@@ -4778,6 +5293,17 @@ const CFOPS_ST = new Set([
 const TaxAnalyzer = () => {
  const [currentUser, setCurrentUser] = useState(null);
   const { getCached: getCachedNcmDecisao, saveDecision: saveNcmDecisao, deleteDecision: deleteNcmDecisao, clearAllDecisions: clearAllNcmDecisoes, loading: loadingNcmDecisoes } = useNcmDecisoes(currentUser?.licenseCNPJ);
+  const { getCached: getCachedNbsDecisao, saveDecision: saveNbsDecisao, loading: loadingNbsDecisoes } = useNbsDecisoes(currentUser?.licenseCNPJ);
+  // Confirmação/rejeição manual de NCM na Conferência — levantado para a raiz para
+  // que a rejeição afete o Confronto IBS/CBS e demais telas, não só a própria aba.
+  const [ncmConfirmacoes, setNcmConfirmacoes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ncm_conferencia_v1') || '{}'); }
+    catch { return {}; }
+  });
+  const saveNcmConfirmacoes = (obj) => {
+    setNcmConfirmacoes(obj);
+    localStorage.setItem('ncm_conferencia_v1', JSON.stringify(obj));
+  };
   const [showSplash, setShowSplash] = useState(false);
   const [loginForm, setLoginForm] = useState({ cnpj: '', regime: 'simples', aliquota: '' });
   const [activeModule, setActiveModule] = useState('visaogeral');
@@ -4813,7 +5339,7 @@ const [importMode, setImportMode] = useState('substituir'); // ← ADICIONAR
   const [simplesMainTab, setSimplesMainTab] = useState('dentro');
 const [simplesRbt12Raw, setSimplesRbt12Raw] = useState('');
 const [simplesSegmentos, setSimplesSegmentos] = useState([
-  { id: 1, anexo: 'anexo1', fatRaw: '', showST: false, secaoIRaw: '', secaoIIRaw: '' }
+  { id: 1, anexo: 'anexo1', fatRaw: '', showST: false, secaoIRaw: '', secaoIIRaw: '', issRetRaw: '' }
 ]);
  const [selectedCompetence, setSelectedCompetence] = useState('TODAS');
 
@@ -5039,6 +5565,14 @@ useEffect(() => {
           const vServ      = safeNumber(safeExtract(vServPrest, 'vServ'));
           if (vServ <= 0) continue;
 
+          // ISS: valor efetivo vem do bloco infNFSe (processado pelo emissor nacional);
+          // a retenção (tpRetISSQN: 1=não retido, 2=retido pelo tomador) vem do DPS.
+          const valoresNFSe = infNFSe.getElementsByTagName('valores')[0];
+          const vISSQN      = safeNumber(safeExtract(valoresNFSe, 'vISSQN'));
+          const tribMun     = infDPS.getElementsByTagName('tribMun')[0];
+          const tpRetISSQN  = safeExtract(tribMun, 'tpRetISSQN');
+          const issRetido   = tpRetISSQN === '2';
+
           const nfseItem = {
             id: globalId++,
             nNF: safeExtract(infNFSe, 'nNFSe') || '1',
@@ -5051,6 +5585,7 @@ useEffect(() => {
             prodValUnit: vServ, prodValTotal: vServ,
             prodQty: 1, prodUnit: 'SV', prodCFOP: '',
             formaPagamento: 'Outros',
+            vISSQN, issRetido,
             impostoDestacado: { icms:0, fcp:0, pis:0, cofins:0, ibs:0, cbs:0, total:0, temDados:false, temIBSCBS:false },
           };
           if (isSaidaNFSe) newSaidas.push(nfseItem); else newEntradas.push(nfseItem);
@@ -5291,6 +5826,12 @@ const item = {
           const vServ      = safeNumber(safeExtract(vServPrest, 'vServ'));
           if (vServ <= 0) { blocked++; continue; }
 
+          const valoresNFSe = infNFSe.getElementsByTagName('valores')[0];
+          const vISSQN      = safeNumber(safeExtract(valoresNFSe, 'vISSQN'));
+          const tribMun     = infDPS.getElementsByTagName('tribMun')[0];
+          const tpRetISSQN  = safeExtract(tribMun, 'tpRetISSQN');
+          const issRetido   = tpRetISSQN === '2';
+
           const nfseItem = {
             id: globalId++,
             nNF: safeExtract(infNFSe, 'nNFSe') || '1',
@@ -5303,6 +5844,7 @@ const item = {
             prodValUnit: vServ, prodValTotal: vServ,
             prodQty: 1, prodUnit: 'SV', prodCFOP: '',
             formaPagamento: 'Outros',
+            vISSQN, issRetido,
             impostoDestacado: { icms:0, fcp:0, pis:0, cofins:0, ibs:0, cbs:0, total:0, temDados:false, temIBSCBS:false },
           };
           if (isSaidaNFSe) newSaidas.push(nfseItem); else newEntradas.push(nfseItem);
@@ -5510,13 +6052,10 @@ if (!currentUser) {
   return (
     <div className="min-h-screen flex font-sans">
       {/* Painel esquerdo — identidade RN */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-[#111827] p-12">
+      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-[#222222] p-12">
         <div>
           <div className="flex flex-col items-start mb-16">
-            <div className="border-[3px] border-white rounded-sm px-5 py-3">
-              <span className="text-white text-3xl font-black tracking-widest leading-none">RN</span>
-            </div>
-            <span className="text-white/70 text-[9px] font-bold uppercase tracking-[0.35em] mt-1.5">contabilidade</span>
+            <img src={logoRN} alt="RN Contabilidade" className="h-36 w-auto rounded"/>
           </div>
           <h2 className="text-4xl font-black text-white leading-tight">
             Sistema de<br/>
@@ -5538,13 +6077,10 @@ if (!currentUser) {
         <div className="w-full max-w-sm">
           {/* Logo mobile */}
           <div className="flex lg:hidden flex-col items-center mb-10">
-            <div className="border-2 border-[#111827] rounded px-4 py-1.5">
-              <span className="text-[#111827] text-2xl font-black tracking-widest">RN</span>
-            </div>
-            <span className="text-[#111827]/60 text-[9px] font-bold uppercase tracking-[0.3em] mt-1">contabilidade</span>
+            <img src={logoRN} alt="RN Contabilidade" className="h-20 w-auto rounded"/>
           </div>
 
-          <h1 className="text-2xl font-black text-[#111827] mb-1">Bem-vindo</h1>
+          <h1 className="text-2xl font-black text-[#222222] mb-1">Bem-vindo</h1>
           <p className="text-slate-400 text-sm mb-8">Acesse o sistema de análise tributária</p>
 
           <form onSubmit={handleEntrada} className="space-y-5">
@@ -5571,7 +6107,7 @@ if (!currentUser) {
                     key={opt.value}
                     type="button"
                     onClick={() => setLoginForm({ ...loginForm, regime: opt.value, aliquota: '' })}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${loginForm.regime === opt.value ? 'border-[#111827] bg-[#111827] text-white shadow-md' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${loginForm.regime === opt.value ? 'border-[#222222] bg-[#222222] text-white shadow-md' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
                     {opt.label}
                   </button>
                 ))}
@@ -5636,7 +6172,8 @@ const exportarRelatorioFiscal = async () => {
     const xProd = item.prodNome || '';
     const ncm = (item.prodNCM || '').replace(/\D/g, '').padStart(8, '0');
     const cached = getCachedNcmDecisao(cnpj, ncm, xProd, null);
-    const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null);
+    const cachedNbs = getCachedNbsDecisao(cnpj, (item.prodNBS || '').replace(/\D/g, ''));
+    const { reduction, disc } = resolveReducaoEfetiva(item.prodNCM, xProd, item.prodNBS, cached, null, cachedNbs, ncmConfirmacoes);
 
     const regime = isEntrada ? (item.impostoDestacado?.temDados ? 'normal' : 'simples') : 'normal';
     const orig = isEntrada ? (item.peerUF||'RJ') : (item.emitUF||'RJ');
@@ -5762,13 +6299,14 @@ a1.push(['TOTAL MANUAIS','', fBRL(creditosParaExport.reduce((a,c)=>a+c.valor,0))
     const faixa = tab.faixas[faixaIdx];
     const aliqEf = (rbt12*faixa.nominal-faixa.deducao)/rbt12;
     const icmsIdx = tab.tributos.indexOf('ICMS');
+    const issIdxExport = tab.tributos.indexOf('ISS');
     const dasBruto = fat*aliqEf;
 
     const hasST = seg.showST && (parseVal(seg.secaoIRaw)>0||parseVal(seg.secaoIIRaw)>0);
     const r1 = hasST?parseVal(seg.secaoIRaw):fat;
     const r2 = hasST?parseVal(seg.secaoIIRaw):0;
     const icmsRep = faixa.rep[icmsIdx] || 0;
-    const dasDentro = dasBruto - r2 * aliqEf * icmsRep;
+    const dasDentroBruto = dasBruto - r2 * aliqEf * icmsRep;
     const calcFora=(receita,noICMS)=>{
       if(!receita)return 0;
       return tab.tributos.reduce((a,nome,i)=>{
@@ -5777,7 +6315,15 @@ a1.push(['TOTAL MANUAIS','', fBRL(creditosParaExport.reduce((a,c)=>a+c.valor,0))
         return a+receita*aliqEf*(faixa.rep[i]||0);
       },0);
     };
-    const dasFora = calcFora(r1,false)+calcFora(r2,true);
+    const dasForaBruto = calcFora(r1,false)+calcFora(r2,true);
+
+    // ISS retido na fonte pelo tomador — abate do DAS (mesma regra do SimplesNacionalTab)
+    const issRetRevenue = Math.min(parseVal(seg.issRetRaw), fat);
+    const issRetDeduzido = (issIdxExport >= 0 && issRetRevenue > 0)
+      ? issRetRevenue * aliqEf * (faixa.rep[issIdxExport] || 0)
+      : 0;
+    const dasDentro = Math.max(0, dasDentroBruto - issRetDeduzido);
+    const dasFora = Math.max(0, dasForaBruto - issRetDeduzido);
     totDentro+=dasDentro; totFora+=dasFora; totFat+=fat;
 
     a2.push(['','','','']);
@@ -5808,6 +6354,9 @@ tab.tributos.forEach((nome,i)=>{
   const valForaReal = excluido ? 0 : (isICMS ? dasBrutoR1 * rep : (dasBrutoR1 + dasBrutoR2) * rep);
   a2.push([`${nome} (${fPct(rep)}%)`, fBRL(valDentro), fBRL(valForaReal), excluido?'Excluído no Por Fora':'']);
 });
+if (issRetDeduzido > 0) {
+  a2.push(['ISS Retido na Fonte (Dedução)', `- ${fBRL(issRetDeduzido)}`, `- ${fBRL(issRetDeduzido)}`, 'tpRetISSQN=2 nos XMLs']);
+}
 a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   });
 
@@ -5893,16 +6442,11 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   ];
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-slate-800 pb-12">
-      <div className="bg-[#111827] sticky top-0 z-50 shadow-lg">
+      <div className="bg-[#222222] sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
           {/* Logo RN */}
           <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center">
-              <div className="border-2 border-white rounded px-3 py-1">
-                <span className="text-white text-lg font-black tracking-widest leading-none">RN</span>
-              </div>
-              <span className="text-white/70 text-[8px] font-bold uppercase tracking-[0.3em] mt-0.5">contabilidade</span>
-            </div>
+            <img src={logoRN} alt="RN Contabilidade" className="h-11 w-auto rounded"/>
             <div className="w-px h-6 bg-white/20 hidden md:block"/>
             <div className="hidden md:block">
               <span className="text-gray-400 text-xs font-medium">Sistema Tributário</span>
@@ -5942,12 +6486,13 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
     { id: 'reforma', label: 'Reforma Tributária', icon: FileText },
     { id: 'apuracao', label: 'Confronto IBS/CBS', icon: BarChart3 },
     { id: 'simples', label: 'Simples Nacional', icon: Percent },
+    { id: 'precificacao', label: 'Precificação', icon: Tag },
   ].map(({ id, label, icon: Icon, badge }) => (
             <button key={id} onClick={() => setActiveModule(id)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all border shadow-sm ${activeModule===id ? 'bg-[#111827] text-white border-transparent shadow-lg' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all border shadow-sm ${activeModule===id ? 'bg-[#222222] text-white border-transparent shadow-lg' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
               <Icon className={`w-4 h-4 ${activeModule===id ? 'text-[#D9C14A]' : ''}`}/>
               {label}
-              {badge !== 0 && <span className={`ml-1 px-2 py-0.5 text-[10px] rounded-full font-bold ${activeModule===id ? 'bg-white text-[#111827]' : 'bg-slate-100 text-slate-600'}`}>{badge}</span>}
+              {badge !== 0 && <span className={`ml-1 px-2 py-0.5 text-[10px] rounded-full font-bold ${activeModule===id ? 'bg-white text-[#222222]' : 'bg-slate-100 text-slate-600'}`}>{badge}</span>}
             </button>
           ))}
         </div>
@@ -5979,8 +6524,8 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
             {pricingTab === 'upload' && (
               <div className="bg-white rounded-b-xl rounded-tr-xl shadow-sm border border-slate-200 p-12 text-center">
                 <div className="max-w-lg mx-auto space-y-6">
-                  <div className="w-20 h-20 bg-[#111827] rounded-2xl flex items-center justify-center mx-auto shadow-xl transform rotate-3"><Upload className="w-8 h-8 text-white"/></div>
-                  <h2 className="text-3xl font-bold text-[#111827]">Importação Fiscal</h2>
+                  <div className="w-20 h-20 bg-[#222222] rounded-2xl flex items-center justify-center mx-auto shadow-xl transform rotate-3"><Upload className="w-8 h-8 text-white"/></div>
+                  <h2 className="text-3xl font-bold text-[#222222]">Importação Fiscal</h2>
                   <p className="text-slate-500 leading-relaxed">XML único para o simulador de precificação. Para análise em volume, use Processamento em Lote.</p>
                   <label className="block transform hover:scale-105 active:scale-95 cursor-pointer">
                     <span className="block w-full py-4 px-8 rounded-xl font-bold text-white shadow-xl bg-[#D9C14A] hover:bg-[#B8A030] flex items-center justify-center gap-3"><FolderOpen className="w-5 h-5"/> Selecionar XML</span>
@@ -6000,7 +6545,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
                   </div>
                   <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado de Destino</label>
-                    <select value={selectedUF} onChange={e => setSelectedUF(e.target.value)} className="w-full bg-transparent font-bold text-lg text-[#111827] border-none outline-none focus:ring-0 cursor-pointer">
+                    <select value={selectedUF} onChange={e => setSelectedUF(e.target.value)} className="w-full bg-transparent font-bold text-lg text-[#222222] border-none outline-none focus:ring-0 cursor-pointer">
                       {UF_LIST.map(uf => <option key={uf} value={uf}>{uf}</option>)}
                     </select>
                   </div>
@@ -6026,7 +6571,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
                             </div>
                           </div>
                           <div className="text-right flex items-center gap-6">
-                            <div><p className="text-[10px] text-slate-400 uppercase font-bold">Preço Unit.</p><p className="text-xl font-extrabold text-[#111827]">R$ {product.currentPrice.toFixed(2)}</p></div>
+                            <div><p className="text-[10px] text-slate-400 uppercase font-bold">Preço Unit.</p><p className="text-xl font-extrabold text-[#222222]">R$ {product.currentPrice.toFixed(2)}</p></div>
                             <div className={`p-2 rounded-full hover:bg-slate-100 ${isExp ? 'rotate-180' : ''} transition-transform`}><ChevronDown className="w-5 h-5 text-slate-400"/></div>
                           </div>
                         </div>
@@ -6064,8 +6609,8 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
             {pricingTab === 'batch' && (
               <div className="space-y-6">
                 <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 text-center">
-                  <div className="w-16 h-16 bg-[#111827] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"><Layers className="w-8 h-8 text-white"/></div>
-                  <h2 className="text-2xl font-bold text-[#111827] mb-3">Processamento em Lote (Big Data)</h2>
+                  <div className="w-16 h-16 bg-[#222222] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"><Layers className="w-8 h-8 text-white"/></div>
+                  <h2 className="text-2xl font-bold text-[#222222] mb-3">Processamento em Lote (Big Data)</h2>
                   <p className="text-slate-500 mb-6 max-w-lg mx-auto">Importe múltiplos XMLs. O sistema separa automaticamente <strong>Saídas</strong> (você emitiu) de <strong>Entradas</strong> (você recebeu).</p>
                   <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-8 bg-slate-50 p-6 rounded-xl border border-slate-200 max-w-3xl mx-auto">
                     <button onClick={carregarDemoCompleta} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center gap-2 transform hover:scale-105 transition-all">
@@ -6090,7 +6635,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
                   </div>
                   <p className="text-xs text-slate-400 mb-4 font-bold uppercase tracking-wider">Ou importe arquivos reais do cliente:</p>
                   <label className="inline-block transform hover:scale-105 active:scale-95">
-                    <span className="bg-[#111827] hover:bg-[#0d0d0d] text-white px-8 py-4 rounded-xl cursor-pointer font-bold shadow-lg flex items-center gap-3"><Upload className="w-5 h-5"/> Selecionar Múltiplos Arquivos (.xml)</span>
+                    <span className="bg-[#222222] hover:bg-[#0d0d0d] text-white px-8 py-4 rounded-xl cursor-pointer font-bold shadow-lg flex items-center gap-3"><Upload className="w-5 h-5"/> Selecionar Múltiplos Arquivos (.xml)</span>
                     <input type="file" multiple accept=".xml" onChange={handleBatchUpload} className="hidden"/>
                   </label>
                   {isBatchProcessing && (<div className="mt-8 flex flex-col items-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-[#D9C14A] rounded-full animate-spin"></div><p className="mt-2 text-slate-500 font-bold text-sm">Processando e classificando notas...</p></div>)}
@@ -6159,6 +6704,13 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   deleteDecision={deleteNcmDecisao}
   clearAllDecisions={clearAllNcmDecisoes}
   loadingNcmDecisoes={loadingNcmDecisoes}
+  getCachedNbs={getCachedNbsDecisao}
+  saveDecisionNbs={saveNbsDecisao}
+  loadingNbsDecisoes={loadingNbsDecisoes}
+  ncmConfirmacoes={ncmConfirmacoes}
+  setNcmConfirmacoes={saveNcmConfirmacoes}
+  segmentosSimples={simplesSegmentos}
+  rbt12RawSimples={simplesRbt12Raw}
 />
           </div>
         )}
@@ -6168,7 +6720,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
         {activeModule === 'apuracao' && (
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-              <h2 className="text-2xl font-bold text-[#111827] flex items-center gap-2"><BarChart3 className="w-6 h-6 text-[#D9C14A]"/> Apuração: Confronto de Débitos e Créditos</h2>
+              <h2 className="text-2xl font-bold text-[#222222] flex items-center gap-2"><BarChart3 className="w-6 h-6 text-[#D9C14A]"/> Apuração: Confronto de Débitos e Créditos</h2>
               <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg">
                 <span className="text-xs font-bold text-slate-700 uppercase">Ano de Simulação:</span>
                 <select value={reformYear} onChange={e => setReformYear(e.target.value)} className="bg-transparent font-bold text-slate-800 outline-none text-sm cursor-pointer">
@@ -6178,13 +6730,13 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
             </div>
          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3 mb-4">
   <div className="flex items-center gap-3">
-    <div className="bg-[#111827] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
+    <div className="bg-[#222222] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
     <span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span>
   </div>
   <div className="flex flex-wrap gap-2">
-    <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
+    <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
     {[...new Set([...saidasData,...entradasData].filter(i=>i.date).map(i=>{const d=new Date(i.date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}))].sort().reverse().map(comp=>(
-      <button key={comp} onClick={()=>setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>
+      <button key={comp} onClick={()=>setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>
     ))}
   </div>
 </div>
@@ -6209,7 +6761,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
       <p className="text-[10px] text-slate-400">{entradasParaCMV.length} itens • {selectedCompetence === 'TODAS' ? 'todo período' : selectedCompetence}</p>
     </div>
   </div>
-  <div className="bg-[#111827] border border-[#111827] rounded-xl p-4 flex items-center gap-4">
+  <div className="bg-[#222222] border border-[#222222] rounded-xl p-4 flex items-center gap-4">
     <div className="p-3 bg-white/10 rounded-xl"><Scale className="w-5 h-5 text-white"/></div>
     <div>
       <p className="text-[10px] font-bold uppercase text-gray-300">Resultado Bruto Estimado</p>
@@ -6223,7 +6775,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
 {/* Sub-abas do Confronto */}
 <div className="flex gap-4 border-b border-slate-200 px-2 mb-6">
   {[
-    { id: 'apuracao', label: 'Débito / Crédito', icon: BarChart3, activeClass: 'border-[#D9C14A] text-[#111827]' },
+    { id: 'apuracao', label: 'Débito / Crédito', icon: BarChart3, activeClass: 'border-[#D9C14A] text-[#222222]' },
     { id: 'creditos', label: 'Créditos Manuais (IBS/CBS)', icon: CheckCircle, activeClass: 'border-gray-500 text-blue-700' },
   ].map(({ id, label, icon: Icon, activeClass }) => (
     <button key={id} onClick={() => setApuracaoSubTab(id)}
@@ -6234,7 +6786,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
 </div>
 
 {apuracaoSubTab === 'apuracao' ? (
-  <ApuracaoTab saidasData={saidasParaApuracao} entradasData={entradasParaCMV} creditosManuais={creditosManuais} reformYear={reformYear} simplesRate={simplesRate} cnpj={currentUser?.licenseCNPJ} getCached={getCachedNcmDecisao}/>
+  <ApuracaoTab saidasData={saidasParaApuracao} entradasData={entradasParaCMV} creditosManuais={creditosManuais} reformYear={reformYear} simplesRate={simplesRate} cnpj={currentUser?.licenseCNPJ} getCached={getCachedNcmDecisao} getCachedNbs={getCachedNbsDecisao} ncmConfirmacoes={ncmConfirmacoes}/>
 ) : (
   <CreditosTab reformYear={reformYear}/>
 )}
@@ -6245,7 +6797,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
     {activeModule === 'simples' && (
   <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-      <h2 className="text-2xl font-bold text-[#111827] flex items-center gap-2">
+      <h2 className="text-2xl font-bold text-[#222222] flex items-center gap-2">
         <Percent className="w-6 h-6 text-[#D9C14A]"/> Simples Nacional — Reforma Tributária
       </h2>
               <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg">
@@ -6260,13 +6812,13 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
             </div>
 <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3 mb-4">
   <div className="flex items-center gap-3">
-    <div className="bg-[#111827] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
+    <div className="bg-[#222222] p-2 rounded-lg text-white"><Filter className="w-4 h-4"/></div>
     <span className="text-sm font-bold text-slate-700">{selectedCompetence === 'TODAS' ? 'Todo o Período' : selectedCompetence}</span>
   </div>
   <div className="flex flex-wrap gap-2">
-    <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
+    <button onClick={() => setSelectedCompetence('TODAS')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence==='TODAS'?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>TODAS</button>
     {[...new Set([...saidasData,...entradasData].filter(i=>i.date).map(i=>{const d=new Date(i.date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}))].sort().reverse().map(comp=>(
-      <button key={comp} onClick={()=>setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#111827] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>
+      <button key={comp} onClick={()=>setSelectedCompetence(comp)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selectedCompetence===comp?'bg-[#222222] text-white border-transparent':'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{comp}</button>
     ))}
   </div>
 </div>
@@ -6286,8 +6838,26 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   simplesRate={simplesRate}
   cnpj={currentUser?.licenseCNPJ}
   getCached={getCachedNcmDecisao}
+  getCachedNbs={getCachedNbsDecisao}
+  ncmConfirmacoes={ncmConfirmacoes}
 />
           </div>
+        )}
+
+        {/* MÃ"DULO: PRECIFICAÃ‡ÃƒO */}
+        {activeModule === 'precificacao' && (
+          <PrecificacaoTab
+            saidasData={saidasFiltradas}
+            empresaRegime={empresaRegime}
+            simplesRate={simplesRate}
+            reformYear={reformYear}
+            cnpj={currentUser?.licenseCNPJ}
+            getCached={getCachedNcmDecisao}
+            getCachedNbs={getCachedNbsDecisao}
+            ncmConfirmacoes={ncmConfirmacoes}
+            segmentosSimples={simplesSegmentos}
+            rbt12RawSimples={simplesRbt12Raw}
+          />
         )}
 
       {/* â"€â"€â"€ MODAL DE IMPORTAÇÃƒO GLOBAL â"€â"€â"€ */}
@@ -6299,7 +6869,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden">
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#111827] rounded-xl flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#222222] rounded-xl flex items-center justify-center">
                   <Upload className="w-4 h-4 text-[#94a3b8]"/>
                 </div>
                 <div>
@@ -6364,7 +6934,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
                     <span className="text-slate-700">{importProgress}%</span>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#111827] rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}/>
+                    <div className="h-full bg-[#222222] rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}/>
                   </div>
                 </div>
               )}
@@ -6377,7 +6947,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-[#111827]">{importResult.saidas}</div>
+                      <div className="text-2xl font-bold text-[#222222]">{importResult.saidas}</div>
                       <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">Saídas</div>
                     </div>
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
@@ -6392,7 +6962,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowImportModal(false); setActiveModule('operacoes'); setOperacoesFlow('saidas'); }}
-                      className="flex-1 bg-[#111827] hover:bg-[#0d0d0d] text-white font-bold py-3 rounded-xl text-sm transition-colors"
+                      className="flex-1 bg-[#222222] hover:bg-[#0d0d0d] text-white font-bold py-3 rounded-xl text-sm transition-colors"
                     >
                       Ver Operações →
                     </button>
