@@ -1,0 +1,561 @@
+<title>Encontro Anual</title>
+<meta name="description" content="Fechamento anual mai/2025–mai/2026 de AKIK Lingerie e Maridel, faturamento, compras e folha.">
+<style>
+  :root {
+    --bg: #f7f2e9;
+    --bg-raised: #fffdf9;
+    --ink: #221c15;
+    --ink-soft: #55493c;
+    --ink-faint: #8c7f6e;
+    --line: #e3d9c8;
+    --line-soft: #ece3d4;
+    --gold: #a3781f;
+    --gold-strong: #7d5c17;
+    --gold-tint: #f1e3c0;
+    --green: #3f6b4d;
+    --green-tint: #dfe9de;
+    --terracotta: #a8532e;
+    --terracotta-tint: #f0ddd2;
+    --shadow: 0 1px 2px rgba(34, 28, 21, .04), 0 8px 24px -12px rgba(34, 28, 21, .18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17130e;
+      --bg-raised: #1f1a13;
+      --ink: #f3ead9;
+      --ink-soft: #cabda6;
+      --ink-faint: #92846e;
+      --line: #372e21;
+      --line-soft: #2b241a;
+      --gold: #d3ab52;
+      --gold-strong: #e7c476;
+      --gold-tint: #362a10;
+      --green: #8fb89b;
+      --green-tint: #223129;
+      --terracotta: #d99672;
+      --terracotta-tint: #3a251b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 28px -14px rgba(0, 0, 0, .6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17130e;
+    --bg-raised: #1f1a13;
+    --ink: #f3ead9;
+    --ink-soft: #cabda6;
+    --ink-faint: #92846e;
+    --line: #372e21;
+    --line-soft: #2b241a;
+    --gold: #d3ab52;
+    --gold-strong: #e7c476;
+    --gold-tint: #362a10;
+    --green: #8fb89b;
+    --green-tint: #223129;
+    --terracotta: #d99672;
+    --terracotta-tint: #3a251b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 28px -14px rgba(0, 0, 0, .6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    padding-inline: 20px;
+    padding-block: 28px 56px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin-inline: auto; }
+  h1, h2, h3 { font-family: Georgia, Cambria, 'Times New Roman', serif; font-weight: 700; text-wrap: balance; margin: 0; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ── header ─────────────────────────────────────────────────────── */
+  header.top {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding-bottom: 20px; margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--gold-strong); margin-bottom: 6px;
+  }
+  header.top h1 { font-size: clamp(26px, 4vw, 38px); font-weight: 600; }
+  header.top .sub { color: var(--ink-soft); font-size: 14px; margin-top: 6px; }
+
+  .switcher {
+    display: inline-flex; background: var(--bg-raised); border: 1px solid var(--line);
+    border-radius: 999px; padding: 3px; box-shadow: var(--shadow);
+  }
+  .switcher button {
+    appearance: none; border: none; background: transparent; cursor: pointer;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .01em;
+    color: var(--ink-soft); padding: 9px 18px; border-radius: 999px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .switcher button.active { background: var(--gold); color: #1c1509; }
+  .switcher button:not(.active):hover { color: var(--ink); }
+
+  /* ── section shell ──────────────────────────────────────────────── */
+  section { margin-bottom: 34px; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .section-head h2 { font-size: 19px; font-weight: 600; }
+  .section-head .note { font-size: 12.5px; color: var(--ink-faint); }
+
+  /* ── KPI tiles ──────────────────────────────────────────────────── */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi {
+    background: var(--bg-raised); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .kpi .value { font-family: Georgia, Cambria, 'Times New Roman', serif; font-size: 25px; font-weight: 700; margin-top: 6px; line-height: 1.1; }
+  .kpi .value.green { color: var(--green); }
+  .kpi .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ── chart card ─────────────────────────────────────────────────── */
+  .card {
+    background: var(--bg-raised); border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px clamp(14px, 3vw, 24px); box-shadow: var(--shadow);
+  }
+  .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 10px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+  svg.chart text { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; fill: var(--ink-faint); font-size: 10.5px; }
+  svg.chart .axis-line { stroke: var(--line); stroke-width: 1; }
+  svg.chart .gap-note { fill: var(--ink-faint); font-style: italic; }
+
+  /* ── table ──────────────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: right; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-faint); padding: 0 8px 8px; border-bottom: 1px solid var(--line);
+  }
+  thead th:first-child, tbody td:first-child { text-align: left; }
+  tbody td { text-align: right; padding: 8px; border-bottom: 1px solid var(--line-soft); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td.dim { color: var(--ink-faint); }
+  .table-scroll { overflow-x: auto; }
+  .table-scroll table { min-width: 560px; }
+
+  /* ── two-col grid ───────────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .rank-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .rank-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .rank-row .n { color: var(--ink-faint); font-size: 11px; width: 16px; flex-shrink: 0; }
+  .rank-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
+  .rank-row .val { font-weight: 700; flex-shrink: 0; }
+  .rank-bar-track { height: 4px; background: var(--line-soft); border-radius: 99px; margin-top: 3px; overflow: hidden; }
+  .rank-bar-fill { height: 100%; background: var(--gold); border-radius: 99px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge.green { background: var(--green-tint); color: var(--green); }
+  .badge.terracotta { background: var(--terracotta-tint); color: var(--terracotta); }
+
+  footer {
+    margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--ink-faint); line-height: 1.6;
+  }
+  footer b { color: var(--ink-soft); }
+
+  @media (max-width: 480px) {
+    .kpi .value { font-size: 21px; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand-eyebrow">RN Contabilidade · Nova Friburgo, RJ</div>
+      <h1>Encontro Anual</h1>
+      <div class="sub tabular" id="periodoLabel">Maio/2025 a Maio/2026</div>
+    </div>
+    <div class="switcher" id="switcher"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Evolução mensal</h2>
+      <div class="note">Faturamento (oficial Domínio) vs. compras — meses sem barra ainda não têm dado apurado</div>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span><i style="background:var(--gold)"></i> Faturamento</span>
+        <span><i style="background:var(--green)"></i> Compras</span>
+      </div>
+      <svg class="chart" id="chartSvg" viewBox="0 0 860 300" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Mês a mês</h2>
+    </div>
+    <div class="card table-scroll">
+      <table>
+        <thead><tr><th>Competência</th><th>Faturamento</th><th>Compras</th><th>Margem aprox.</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Folha de pagamento</h2>
+      <div class="note">Extrato Mensal (Domínio) — CLT + pró-labore</div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="legend"><span><i style="background:var(--gold)"></i> Headcount (CLT + pró-labore)</span></div>
+        <svg class="chart" id="dpChartSvg" viewBox="0 0 860 220" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="card" id="dpSummaryCard"></div>
+    </div>
+  </section>
+
+  <section id="ufSection">
+    <div class="section-head">
+      <h2>Concentração geográfica</h2>
+      <div class="note">Faturamento acumulado do período, por UF</div>
+    </div>
+    <div class="card">
+      <div class="rank-list" id="ufList"></div>
+    </div>
+  </section>
+
+  <section id="clientesSection">
+    <div class="section-head">
+      <h2>Maiores clientes e fornecedores</h2>
+      <div class="note">Acumulado do período</div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="font-size:13px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:10px;">Clientes</h3>
+        <div class="rank-list" id="clientesList"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:13px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:10px;">Fornecedores</h3>
+        <div class="rank-list" id="fornecedoresList"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="footerNote"></footer>
+</div>
+
+<script id="report-data" type="application/json">{"akik": {"fiscal": {"2025-05": {"faturamento": 861239.0, "vendas": 861239.0, "compras": 309516.8, "vendas_por_uf": {"RJ": 898860.3, "SP": 51195.52, "RS": 701.56}, "compras_por_uf": {"SC": 27849.87, "RS": 22818.6, "RJ": 168132.93, "CE": 918.4, "ES": 1919.55, "SP": 87729.42, "MG": 148.03}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 769664.0}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 53005.0}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 51120.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 38570.0}, {"nome": "MARIDEL N.F DA SERRA LINGERIE LTDA", "valor": 28908.0}, {"nome": "D F Fernandes Confeccoes Ltda", "valor": 8713.3}, {"nome": "LOJAS RENNER SA", "valor": 701.56}, {"nome": "Fitas Elasticas Estrela LTDA", "valor": 75.52}], "top_fornecedores": [{"nome": "MARIDEL N.F. DA SERRA LINGERIE LTDA", "valor": 110720.1}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 37440.0}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 24303.52}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 18873.99}, {"nome": "BZK TEXTIL LTDA", "valor": 17497.77}, {"nome": "FITAS ELASTICAS ESTRELA LTDA", "valor": 17476.77}, {"nome": "CRISDU MODA INTIMA LTDA - EPP", "valor": 14689.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 13987.43}, {"nome": "Coretex Indústria Têxtil Ltda", "valor": 10225.44}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 8882.48}]}, "2025-06": {"faturamento": 831766.4, "vendas": 831766.4, "compras": 541734.02, "vendas_por_uf": {"RJ": 873738.12, "SP": 44220.86}, "compras_por_uf": {"RJ": 218173.06, "SP": 177506.82, "SC": 69136.33, "RS": 827.21, "CE": 76001.6, "PR": 89.0}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 627271.4}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 158832.5}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 45662.5}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 37440.0}, {"nome": "MARIDEL N.F DA SERRA LINGERIE LTDA", "valor": 28908.0}, {"nome": "D F Fernandes Confeccoes Ltda", "valor": 13063.72}, {"nome": "Fitas Elasticas Estrela LTDA", "valor": 5038.35}, {"nome": "Rosset  Cia LTDA", "valor": 1742.51}], "top_fornecedores": [{"nome": "ROSSET &amp; CIA LTDA", "valor": 88457.45}, {"nome": "DELFA IND E COM DE ACESSORIOS DO VESTUARIO LTDA", "valor": 76001.6}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 74149.78}, {"nome": "D.F.Fernandes Confeccoes LTDA", "valor": 59092.74}, {"nome": "MARIDEL N.F. DA SERRA LINGERIE LTDA", "valor": 44195.4}, {"nome": "FITAS ELASTICAS ESTRELA LTDA", "valor": 31508.06}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 25920.0}, {"nome": "ZANOTTI INDUSTRIA E COMERCIO LTDA", "valor": 21427.1}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 21254.31}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 17561.1}]}, "2025-07": {"faturamento": 836726.8, "vendas": 836726.8, "compras": 843941.97, "vendas_por_uf": {"RJ": 902965.31, "SP": 25920.0, "RS": 349.54}, "compras_por_uf": {"SP": 275194.81, "RJ": 260276.52, "SC": 56849.14, "CE": 249092.4, "RS": 930.34, "ES": 1598.76}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 639326.8}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 161212.5}, {"nome": "D F Fernandes Confeccoes Ltda", "valor": 37330.51}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 36187.5}, {"nome": "MARIDEL N.F DA SERRA LINGERIE LTDA", "valor": 28908.0}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 25920.0}, {"nome": "LOJAS RENNER SA", "valor": 349.54}], "top_fornecedores": [{"nome": "DELFA IND E COM DE ACESSORIOS DO VESTUARIO LTDA", "valor": 249092.4}, {"nome": "ROSSET &amp; CIA LTDA", "valor": 115233.95}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 70779.94}, {"nome": "FITAS ELASTICAS ESTRELA LTDA", "valor": 60607.06}, {"nome": "D.F.Fernandes Confeccoes LTDA", "valor": 58403.07}, {"nome": "MARIDEL N.F. DA SERRA LINGERIE LTDA", "valor": 48909.6}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 48822.31}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 32400.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 27749.83}, {"nome": "TERLIZZI  ARTEFATOS PARA LINGERIE LTDA", "valor": 23620.38}]}, "2025-08": {"faturamento": 958119.8, "vendas": 958119.8, "compras": 820770.39, "vendas_por_uf": {"RJ": 997674.75, "CE": 4113.2, "SP": 12960.0, "RS": 624.76}, "compras_por_uf": {"SP": 274244.83, "RS": 36515.1, "RJ": 295500.02, "CE": 170153.6, "SC": 43671.44, "ES": 685.4}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 837369.8}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 76210.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 44540.0}, {"nome": "MARIDEL N.F DA SERRA LINGERIE LTDA", "valor": 28908.0}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 12960.0}, {"nome": "D F Fernandes Confeccoes Ltda", "valor": 10646.95}, {"nome": "Delfa Ind e Com de Acessorios do Vestuario LTDA", "valor": 4113.2}, {"nome": "LOJAS RENNER SA", "valor": 624.76}], "top_fornecedores": [{"nome": "DELFA IND E COM DE ACESSORIOS DO VESTUARIO LTDA", "valor": 170153.6}, {"nome": "ROSSET &amp; CIA LTDA", "valor": 157888.21}, {"nome": "D.F.Fernandes Confeccoes LTDA", "valor": 108658.89}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 70448.08}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 63998.06}, {"nome": "MARIDEL N.F. DA SERRA LINGERIE LTDA", "valor": 46807.8}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 42480.0}, {"nome": "CRISDU MODA INTIMA LTDA - EPP", "valor": 35317.7}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 35036.57}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 33482.96}]}, "2025-09": {"faturamento": 1406987.65, "vendas": 1406987.65, "compras": 329502.22, "vendas_por_uf": {"RS": 417.6, "RJ": 2813975.3, "SP": 87249.6}, "compras_por_uf": {"RJ": 48936.51, "RS": 61103.87, "SP": 44783.9, "SC": 47026.39, "CE": 15660.0, "MG": 111991.55}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 2692055.3}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 84960.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 81280.0}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 40640.0}, {"nome": "Cavemac Industrial e Comercial de Maquinas Imp. e Exp. LTDA", "valor": 2289.6}, {"nome": "LOJAS RENNER SA", "valor": 417.6}], "top_fornecedores": [{"nome": "Stellantis Automoveis Brasil Ltda.", "valor": 111991.55}, {"nome": "CRISDU MODA INTIMA LTDA - EPP", "valor": 53050.5}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 46052.99}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 31680.0}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 19855.09}, {"nome": "DELFA IND E COM DE ACESSORIOS DO VESTUARIO LTDA", "valor": 15660.0}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 13575.54}, {"nome": "New Paper Industria e Comercio de Embalagens LTDA", "valor": 7785.15}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 5280.33}, {"nome": "RODRIGO E EMILIA MERCEARIA LTDA", "valor": 4198.4}]}, "2025-10": {"faturamento": 1055215.0, "vendas": 1055215.0, "compras": 365331.34, "vendas_por_uf": {"RJ": 1055215.0, "RS": 126.65, "SP": 43352.0, "SC": 804.1}, "compras_por_uf": {"ES": 22642.01, "RJ": 190694.98, "SC": 39757.0, "SP": 111237.46, "CE": 1.0, "RS": 998.89}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 973935.0}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 48843.0}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 43352.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 32437.0}, {"nome": "COLOR TIM COM. E TINGIMENTOS DE AVIAMENTOS LTDA", "valor": 804.1}, {"nome": "LOJAS RENNER SA", "valor": 126.65}], "top_fornecedores": [{"nome": "WW DA SERRA VEICULOS LTDA", "valor": 126990.0}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 38840.0}, {"nome": "ROSSET &amp; CIA LTDA", "valor": 36376.52}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 30717.57}, {"nome": "EXCIM Importacao e Exportacao Ltda.", "valor": 22642.01}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 21040.92}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 19597.17}, {"nome": "Coretex Indústria Têxtil Ltda", "valor": 13667.86}, {"nome": "LUNELLI TEXTIL LTDA", "valor": 8152.07}, {"nome": "ZANOTTI INDUSTRIA E COMERCIO LTDA", "valor": 6215.17}]}, "2025-11": {"faturamento": 930122.6, "vendas": 930122.6, "compras": 423202.37, "vendas_por_uf": {"RS": 708.35, "RJ": 930122.6, "SP": 30048.0, "SC": 3805.37}, "compras_por_uf": {"RJ": 193389.01, "SP": 89841.16, "SC": 85618.3, "CE": 47304.0, "BA": 189.9, "RS": 6860.0}, "top_clientes": [{"nome": "Lojas Renner S.A.", "valor": 848842.6}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 40640.0}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 40640.0}, {"nome": "Mainetti do Brasil Servicos LTDA", "valor": 30048.0}, {"nome": "Zanotti Industria e Comercio LTDA", "valor": 3805.37}, {"nome": "LOJAS RENNER SA", "valor": 708.35}], "top_fornecedores": [{"nome": "CASAL COM AUTO SERVICOS ALCANTARA LTDA", "valor": 125500.0}, {"nome": "COLOR TIM", "valor": 49309.22}, {"nome": "DELFA IND E COM DE ACESSORIOS DO VESTUARIO LTDA", "valor": 47304.0}, {"nome": "Artplast de Friburgo Ind. Com. de Plasticos Ltda.", "valor": 44680.55}, {"nome": "ROSSET &amp; CIA LTDA", "valor": 40109.33}, {"nome": "FITAS ELASTICAS ESTRELA LTDA", "valor": 20686.84}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 15840.0}, {"nome": "MENEGOTTI TEXTIL LTDA", "valor": 10514.03}, {"nome": "Malhas e Confeccoes Caricia Ltda", "valor": 9069.86}, {"nome": "TERLIZZI  ARTEFATOS PARA LINGERIE LTDA", "valor": 8571.09}]}, "2025-12": {"faturamento": 428520.2, "vendas": 428520.2, "compras": 196535.55, "vendas_por_uf": {"RJ": 428520.2, "SP": 2160.0}, "compras_por_uf": {"RJ": 134330.97, "SP": 56919.82, "SC": 5284.76}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 387880.2}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 40640.0}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 2160.0}], "top_fornecedores": [{"nome": "CASAL COM AUTO SERVICOS ALCANTARA LTDA", "valor": 125500.0}, {"nome": "FITAS ELÁSTICAS ESTRELA LTDA", "valor": 46122.24}, {"nome": "RODRIGO E EMILIA MERCEARIA LTDA ME", "valor": 4899.22}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 4430.98}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 4320.0}, {"nome": "CORETEX INDUSTRIA TEXTIL LTDA", "valor": 2743.86}, {"nome": "ZANOTTI S.A.", "valor": 2322.0}, {"nome": "GRAVAR 193 CARIMBOS E ETIQUETAS LTDA", "valor": 2082.0}, {"nome": "PHDF PECAS E ACESSORIOS LTDA", "valor": 1590.0}, {"nome": "MC HOLSCHAUER PECAS EPP", "valor": 1018.9}]}, "2026-01": {"faturamento": 350082.02, "vendas": 350082.02, "compras": 579282.3, "vendas_por_uf": {"RS": 389.5, "RJ": 350082.02, "SP": 30240.0, "SC": 1532.32}, "compras_por_uf": {"RJ": 187204.22, "CE": 131861.6, "SP": 147582.45, "SC": 71388.44, "RS": 41229.59, "ES": 16.0}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 309947.4}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 30240.0}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 20320.0}, {"nome": "CRISDU MODA INTIMA LTDA - FL6", "valor": 20204.12}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 1532.32}], "top_fornecedores": [{"nome": "DELFA IND E COM DE ACESS VESTUÁRIO LTDA", "valor": 131861.6}, {"nome": "ARTPLAST DE FRIBURGO IND E COM DE PLASTICOS LTDA", "valor": 124737.36}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 62290.65}, {"nome": "ROSSET & CIA LTDA", "valor": 49025.86}, {"nome": "MALHAS E CONFECÇÕES CARÍCIA LTDA", "valor": 43919.88}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 26640.0}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 23936.43}, {"nome": "LUNELLI TEXTIL LTDA", "valor": 22971.97}, {"nome": "FITAS ELÁSTICAS ESTRELA LTDA", "valor": 21594.87}, {"nome": "ZANOTTI S.A.", "valor": 18456.31}]}, "2026-02": {"faturamento": 829955.9, "vendas": 829955.9, "compras": 493339.18, "vendas_por_uf": {"RS": 482.76, "RJ": 829955.9, "SP": 21088.0}, "compras_por_uf": {"RJ": 141700.75, "CE": 47789.2, "SP": 172650.74, "SC": 80274.69, "ES": 13940.02, "RS": 6828.28, "MG": 30155.5}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 830438.66}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 21088.0}], "top_fornecedores": [{"nome": "ARTPLAST DE FRIBURGO IND E COM DE PLASTICOS LTDA", "valor": 118071.74}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 52048.0}, {"nome": "DELFA IND E COM DE ACESS VESTUÁRIO LTDA", "valor": 47789.2}, {"nome": "FITAS ELÁSTICAS ESTRELA LTDA", "valor": 40352.87}, {"nome": "ZANOTTI S.A.", "valor": 36950.03}, {"nome": "ROSSET & CIA LTDA", "valor": 32036.64}, {"nome": "J. ROBERTO COMÉRCIO DE MÁQUINAS E ACESSÓRIOS LTDA", "valor": 30100.0}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 16592.02}, {"nome": "MALHAS MENEGOTTI INDUSTRIA TEXTIL LTDA.", "valor": 16395.28}, {"nome": "TEXTIL DE RENDAS ACACIA LTDA", "valor": 15660.0}]}, "2026-03": {"faturamento": 1062371.7, "vendas": 1062371.7, "compras": 341179.1, "vendas_por_uf": {"RS": 701.32, "RJ": 1062371.7, "SP": 45360.0, "SC": 1200.0}, "compras_por_uf": {"RJ": 81854.57, "CE": 17783.2, "SP": 188426.01, "SC": 28798.83, "RS": 24267.5, "DF": 48.99}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 981793.02}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 60960.0}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 45360.0}, {"nome": "CRISDU MODA INTIMA LTDA - FL6", "valor": 20320.0}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 1200.0}], "top_fornecedores": [{"nome": "ROSSET & CIA LTDA", "valor": 141057.57}, {"nome": "CRISDU MODA INTIMA LTDA", "valor": 45540.08}, {"nome": "ARTPLAST DE FRIBURGO IND E COM DE PLASTICOS LTDA", "valor": 35389.8}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 21215.65}, {"nome": "DELFA IND E COM DE ACESS VESTUÁRIO LTDA", "valor": 17783.2}, {"nome": "CANOMA COMERCIO E DISTRIBUICAO LTDA", "valor": 13813.31}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 12240.0}, {"nome": "LACOS CARMEM LTDA", "valor": 8400.5}, {"nome": "SERRA SILK CONF E COM DE ROUPAS", "valor": 5479.3}, {"nome": "RODRIGO E EMILIA MERCEARIA LTDA ME", "valor": 5032.54}]}, "2026-04": {"faturamento": 977183.73, "vendas": 977183.73, "compras": 717357.68, "vendas_por_uf": {"RS": 206.5, "RJ": 958061.55, "SC": 5844.56, "SP": 30240.0, "MG": 30100.0}, "compras_por_uf": {"RJ": 360977.79, "CE": 66506.2, "SP": 177382.21, "MG": 8360.12, "SC": 85969.65, "ES": 9684.43, "RS": 8477.28}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 897308.05}, {"nome": "CRISDU MODA INTIMA LTDA - FL6", "valor": 40640.0}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 30240.0}, {"nome": "J. ROBERTO COMERCIO DE MAQUINAS E ACESSORIOS LTDA", "valor": 30100.0}, {"nome": "ROMANCE COMERCIO DE CONFECCOES LTDA", "valor": 20320.0}, {"nome": "ZANOTTI S.A.", "valor": 3292.8}, {"nome": "COLOR TIM COMERCIO E TINGIMENTO DE AVIAM", "valor": 2551.76}], "top_fornecedores": [{"nome": "WW DA SERRA VEICULOS LTDA", "valor": 255480.0}, {"nome": "ROSSET & CIA LTDA", "valor": 72425.96}, {"nome": "DELFA IND E COM DE ACESS VESTUÁRIO LTDA", "valor": 66506.2}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 54000.0}, {"nome": "ARTPLAST DE FRIBURGO IND E COM DE PLASTICOS LTDA", "valor": 46109.91}, {"nome": "FITAS ELÁSTICAS ESTRELA LTDA", "valor": 29436.5}, {"nome": "WILLIAM MAQUINAS DE FRIBURGO LTDA", "valor": 28545.0}, {"nome": "ZANOTTI S.A.", "valor": 24298.33}, {"nome": "LUNELLI TEXTIL LTDA", "valor": 19796.91}, {"nome": "MALHAS MENEGOTTI INDUSTRIA TEXTIL LTDA.", "valor": 18473.61}]}, "2026-05": {"faturamento": 826454.37, "vendas": 826454.37, "compras": 507778.1, "vendas_por_uf": {"RS": 643.69, "RJ": 818792.2, "SP": 10800.0}, "compras_por_uf": {"RJ": 118746.8, "CE": 45022.4, "SP": 191135.36, "MG": 8851.5, "SC": 89557.02, "RS": 50871.15, "ES": 3443.97, "GO": 149.9}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 778795.89}, {"nome": "CRISDU MODA INTIMA LTDA - FL6", "valor": 40640.0}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 10800.0}], "top_fornecedores": [{"nome": "CRISDU MODA INTIMA LTDA", "valor": 88636.8}, {"nome": "ROSSET & CIA LTDA", "valor": 74501.09}, {"nome": "ARTPLAST DE FRIBURGO IND E COM DE PLASTICOS LTDA", "valor": 63601.41}, {"nome": "DELFA IND E COM DE ACESS VESTUÁRIO LTDA", "valor": 45022.4}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 38272.0}, {"nome": "SENSORMATIC DO BRASIL ELETRONICA LTDA", "valor": 34912.62}, {"nome": "FITAS ELÁSTICAS ESTRELA LTDA", "valor": 32166.21}, {"nome": "ZANOTTI S.A.", "valor": 18121.86}, {"nome": "COLOR TIM COM E TINGIMENTO DE AVIAMENTOS", "valor": 15504.49}, {"nome": "LUNELLI TEXTIL LTDA", "valor": 12453.15}]}, "2026-06": {"faturamento": 1052604.55, "vendas": 1052604.55, "compras": 500605.36, "vendas_por_uf": {"RS": 387.97, "RJ": 989195.01, "SC": 2429.57, "SP": 60592.0}, "compras_por_uf": {"RJ": 202329.4, "SP": 156006.15, "MG": 15653.16, "SC": 32695.99, "ES": 4564.64, "RS": 4200.0, "GO": 85156.02}, "top_clientes": [{"nome": "LOJAS RENNER SA", "valor": 948942.97}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 60592.0}, {"nome": "CRISDU MODA INTIMA LTDA - FL6", "valor": 40640.01}, {"nome": "ZANOTTI S.A.", "valor": 2429.57}], "top_fornecedores": [{"nome": "WW DA SERRA VEICULOS LTDA", "valor": 133490.0}, {"nome": "ROSSET & CIA LTDA", "valor": 93582.32}, {"nome": "LYON TEXTIL LTDA", "valor": 85156.02}, {"nome": "MAINETTI DO BRASIL SERVICOS LTDA", "valor": 42480.0}, {"nome": "ARTPLAST DE FRIBURGO IND E COM DE PLASTICOS LTDA", "valor": 37418.75}, {"nome": "TECELAGEM DE FITAS BRITANNIA LTDA", "valor": 15653.16}, {"nome": "ZANOTTI S.A.", "valor": 14254.96}, {"nome": "MALHAS MENEGOTTI INDUSTRIA TEXTIL LTDA.", "valor": 12578.29}, {"nome": "JESCRI DE FRIBURGO MODA INTIMA LTDA", "valor": 7953.2}, {"nome": "IND ARTEF METAIS TERLIZZI LTDA", "valor": 6714.49}]}}, "dp": {"2025-05": {"clt": {"qtd": 74, "bruto": 173996.25, "liquido": 114398.07, "fgts": 17967.55, "salario": 119325.52, "out_prov": 54670.73, "inss": 12599.19, "irrf": 0.0, "out_desc": 47193.99, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 12269.54, "liquido": 10429.47, "fgts": 0.0, "salario": 12269.54, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 1840.07, "sal_fam": 0.0}, "total": {"qtd": 78, "bruto": 186265.79, "liquido": 124827.54, "fgts": 17967.55, "salario": 131595.06, "out_prov": 54670.73, "inss": 12599.19, "irrf": 0.0, "out_desc": 49034.06, "sal_fam": 195.0}, "admissoes": null, "demissoes": null}, "2025-06": {"clt": {"qtd": 72, "bruto": 177540.75, "liquido": 113541.54, "fgts": 20863.99, "salario": 117143.24, "out_prov": 60397.51, "inss": 12450.6, "irrf": 0.0, "out_desc": 51743.61, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 76, "bruto": 192843.63, "liquido": 126607.88, "fgts": 20863.99, "salario": 132446.12, "out_prov": 60397.51, "inss": 12450.6, "irrf": 0.0, "out_desc": 53980.15, "sal_fam": 195.0}, "admissoes": 0, "demissoes": 2}, "2025-07": {"clt": {"qtd": 72, "bruto": 172243.86, "liquido": 108512.23, "fgts": 13305.32, "salario": 115287.76, "out_prov": 56956.1, "inss": 12141.18, "irrf": 0.0, "out_desc": 51785.45, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 76, "bruto": 187546.74, "liquido": 121578.57, "fgts": 13305.32, "salario": 130590.64, "out_prov": 56956.1, "inss": 12141.18, "irrf": 0.0, "out_desc": 54021.99, "sal_fam": 195.0}, "admissoes": 2, "demissoes": 2}, "2025-08": {"clt": {"qtd": 70, "bruto": 198603.84, "liquido": 116693.83, "fgts": 13565.84, "salario": 141609.43, "out_prov": 56994.41, "inss": 13060.99, "irrf": 0.0, "out_desc": 69044.02, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 74, "bruto": 213906.72, "liquido": 129760.17, "fgts": 13565.84, "salario": 156912.31, "out_prov": 56994.41, "inss": 13060.99, "irrf": 0.0, "out_desc": 71280.56, "sal_fam": 195.0}, "admissoes": 0, "demissoes": 2}, "2025-09": {"clt": {"qtd": 72, "bruto": 178784.74, "liquido": 119882.85, "fgts": 12837.37, "salario": 129135.51, "out_prov": 49649.23, "inss": 13360.46, "irrf": 0.0, "out_desc": 45736.43, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 76, "bruto": 194087.62, "liquido": 132949.19, "fgts": 12837.37, "salario": 144438.39, "out_prov": 49649.23, "inss": 13360.46, "irrf": 0.0, "out_desc": 47972.97, "sal_fam": 195.0}, "admissoes": 3, "demissoes": 1}, "2025-10": {"clt": {"qtd": 70, "bruto": 176601.48, "liquido": 122320.18, "fgts": 12952.48, "salario": 128525.46, "out_prov": 48076.02, "inss": 13440.27, "irrf": 0.0, "out_desc": 41036.03, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 74, "bruto": 191904.36, "liquido": 135386.52, "fgts": 12952.48, "salario": 143828.34, "out_prov": 48076.02, "inss": 13440.27, "irrf": 0.0, "out_desc": 43272.57, "sal_fam": 195.0}, "admissoes": 0, "demissoes": 2}, "2025-11": {"clt": {"qtd": 69, "bruto": 175085.92, "liquido": 113382.77, "fgts": 16509.77, "salario": 127007.46, "out_prov": 48078.46, "inss": 13240.04, "irrf": 0.0, "out_desc": 48658.11, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 73, "bruto": 190388.8, "liquido": 126449.11, "fgts": 16509.77, "salario": 142310.34, "out_prov": 48078.46, "inss": 13240.04, "irrf": 0.0, "out_desc": 50894.65, "sal_fam": 195.0}, "admissoes": 0, "demissoes": 1}, "2025-12": {"clt": {"qtd": 68, "bruto": 197308.3, "liquido": 65039.76, "fgts": 13895.35, "salario": 66751.72, "out_prov": 130556.58, "inss": 15130.09, "irrf": 0.0, "out_desc": 117333.45, "sal_fam": 195.0}, "pro_labore": {"qtd": 4, "bruto": 15302.88, "liquido": 13066.34, "fgts": 0.0, "salario": 15302.88, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2236.54, "sal_fam": 0.0}, "total": {"qtd": 72, "bruto": 212611.18, "liquido": 78106.1, "fgts": 13895.35, "salario": 82054.6, "out_prov": 130556.58, "inss": 15130.09, "irrf": 0.0, "out_desc": 119569.99, "sal_fam": 195.0}, "admissoes": 0, "demissoes": 1}, "2026-01": {"clt": {"qtd": 65, "bruto": 197514.06, "liquido": 77079.02, "fgts": 22344.64, "salario": 78589.66, "out_prov": 118924.4, "inss": 14909.66, "irrf": 0.0, "out_desc": 105728.0, "sal_fam": 202.62}, "pro_labore": {"qtd": 4, "bruto": 16527.11, "liquido": 14263.33, "fgts": 0.0, "salario": 16527.11, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2263.78, "sal_fam": 0.0}, "total": {"qtd": 69, "bruto": 214041.17, "liquido": 91342.35, "fgts": 22344.64, "salario": 95116.77, "out_prov": 118924.4, "inss": 14909.66, "irrf": 0.0, "out_desc": 107991.78, "sal_fam": 202.62}, "admissoes": 1, "demissoes": 4}, "2026-02": {"clt": {"qtd": 70, "bruto": 165669.67, "liquido": 120523.23, "fgts": 12418.48, "salario": 132347.46, "out_prov": 33322.21, "inss": 12723.52, "irrf": 0.0, "out_desc": 32625.54, "sal_fam": 202.62}, "pro_labore": {"qtd": 4, "bruto": 16527.11, "liquido": 14263.33, "fgts": 0.0, "salario": 16527.11, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2263.78, "sal_fam": 0.0}, "total": {"qtd": 74, "bruto": 182196.78, "liquido": 134786.56, "fgts": 12418.48, "salario": 148874.57, "out_prov": 33322.21, "inss": 12723.52, "irrf": 0.0, "out_desc": 34889.32, "sal_fam": 202.62}, "admissoes": 8, "demissoes": 3}, "2026-03": {"clt": {"qtd": 71, "bruto": 179871.7, "liquido": 125321.98, "fgts": 17251.33, "salario": 131019.79, "out_prov": 48851.91, "inss": 13935.8, "irrf": 0.0, "out_desc": 40816.54, "sal_fam": 202.62}, "pro_labore": {"qtd": 4, "bruto": 16527.11, "liquido": 14263.33, "fgts": 0.0, "salario": 16527.11, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2263.78, "sal_fam": 0.0}, "total": {"qtd": 75, "bruto": 196398.81, "liquido": 139585.31, "fgts": 17251.33, "salario": 147546.9, "out_prov": 48851.91, "inss": 13935.8, "irrf": 0.0, "out_desc": 43080.32, "sal_fam": 202.62}, "admissoes": 1, "demissoes": 0}, "2026-04": {"clt": {"qtd": 70, "bruto": 172721.9, "liquido": 124454.84, "fgts": 13087.43, "salario": 131582.12, "out_prov": 41139.78, "inss": 13529.32, "irrf": 0.0, "out_desc": 35007.9, "sal_fam": 270.16}, "pro_labore": {"qtd": 4, "bruto": 16527.11, "liquido": 14263.33, "fgts": 0.0, "salario": 16527.11, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2263.78, "sal_fam": 0.0}, "total": {"qtd": 74, "bruto": 189249.01, "liquido": 138718.17, "fgts": 13087.43, "salario": 148109.23, "out_prov": 41139.78, "inss": 13529.32, "irrf": 0.0, "out_desc": 37271.68, "sal_fam": 270.16}, "admissoes": 1, "demissoes": 2}, "2026-05": {"clt": {"qtd": 70, "bruto": 188592.46, "liquido": 139170.17, "fgts": 14315.5, "salario": 135239.46, "out_prov": 53353.0, "inss": 15005.7, "irrf": 0.0, "out_desc": 34551.67, "sal_fam": 135.08}, "pro_labore": {"qtd": 4, "bruto": 16527.11, "liquido": 14263.33, "fgts": 0.0, "salario": 16527.11, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 2263.78, "sal_fam": 0.0}, "total": {"qtd": 74, "bruto": 205119.57, "liquido": 153433.5, "fgts": 14315.5, "salario": 151766.57, "out_prov": 53353.0, "inss": 15005.7, "irrf": 0.0, "out_desc": 36815.45, "sal_fam": 135.08}, "admissoes": 0, "demissoes": 0}}}, "maridel": {"fiscal": {"2025-05": {"faturamento": 38450.0, "vendas": 38450.0, "compras": null, "vendas_por_uf": {"RJ": 38450.0}, "compras_por_uf": {}}, "2025-06": {"faturamento": 26150.57, "vendas": 26150.57, "compras": null, "vendas_por_uf": {"RJ": 26150.57}, "compras_por_uf": {}}, "2025-07": {"faturamento": 39995.7, "vendas": 39995.7, "compras": 40227.02, "vendas_por_uf": {"RJ": 39995.7}, "compras_por_uf": {"RJ": 40227.02}}, "2025-08": {"faturamento": 30899.8, "vendas": 30899.8, "compras": 34567.51, "vendas_por_uf": {"RJ": 30899.8}, "compras_por_uf": {"RJ": 34567.51}}, "2025-09": {"faturamento": 33510.0, "vendas": 33510.0, "compras": 33959.39, "vendas_por_uf": {"RJ": 33510.0}, "compras_por_uf": {"RJ": 33959.39}}, "2025-10": {"faturamento": 66903.6, "vendas": 66903.6, "compras": 34211.76, "vendas_por_uf": {"RJ": 66903.6}, "compras_por_uf": {"RJ": 34211.76}}, "2025-11": {"faturamento": 30628.06, "vendas": 30628.06, "compras": 17580.88, "vendas_por_uf": {"RJ": 30628.06}, "compras_por_uf": {"RJ": 17580.88}}, "2025-12": {"faturamento": 33451.8, "vendas": 33451.8, "compras": 16980.88, "vendas_por_uf": {"RJ": 33451.8}, "compras_por_uf": {"RJ": 16980.88}}, "2026-01": {"faturamento": 66903.6, "vendas": 66903.6, "compras": 16980.88, "vendas_por_uf": {"RJ": 66903.6}, "compras_por_uf": {"RJ": 16980.88}}, "2026-02": {"faturamento": 33451.8, "vendas": 33451.8, "compras": 16980.88, "vendas_por_uf": {"RJ": 33451.8}, "compras_por_uf": {"RJ": 16980.88}}, "2026-03": {"faturamento": 44045.7, "vendas": 44045.7, "compras": 18498.04, "vendas_por_uf": {"RJ": 44045.7}, "compras_por_uf": {"RJ": 18498.04}}, "2026-04": {"faturamento": 33451.8, "vendas": 33451.8, "compras": 17955.62, "vendas_por_uf": {"RJ": 33451.8}, "compras_por_uf": {"RJ": 17955.62}}, "2026-05": {"faturamento": 33451.8, "vendas": 33451.8, "compras": 36109.13, "vendas_por_uf": {"RJ": 33451.8}, "compras_por_uf": {"RJ": 36109.13}}}, "dp": {"2025-05": {"clt": {"qtd": 22, "bruto": 37721.02, "liquido": 32512.65, "fgts": 2909.59, "salario": 34049.5, "out_prov": 3671.52, "inss": 2817.11, "irrf": 0.0, "out_desc": 2391.26, "sal_fam": 0.0}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 23, "bruto": 40302.94, "liquido": 34810.56, "fgts": 2909.59, "salario": 36631.42, "out_prov": 3671.52, "inss": 2817.11, "irrf": 0.0, "out_desc": 2675.27, "sal_fam": 0.0}, "admissoes": null, "demissoes": null}, "2025-06": {"clt": {"qtd": 24, "bruto": 47412.8, "liquido": 31149.49, "fgts": 7392.67, "salario": 34712.65, "out_prov": 12700.15, "inss": 3092.14, "irrf": 0.0, "out_desc": 13175.5, "sal_fam": 4.33}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 25, "bruto": 49994.72, "liquido": 33447.4, "fgts": 7392.67, "salario": 37294.57, "out_prov": 12700.15, "inss": 3092.14, "irrf": 0.0, "out_desc": 13459.51, "sal_fam": 4.33}, "admissoes": 2, "demissoes": 0}, "2025-07": {"clt": {"qtd": 23, "bruto": 41517.28, "liquido": 31024.65, "fgts": 3164.46, "salario": 33879.11, "out_prov": 7638.17, "inss": 3067.41, "irrf": 0.0, "out_desc": 7555.22, "sal_fam": 130.0}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 24, "bruto": 44099.2, "liquido": 33322.56, "fgts": 3164.46, "salario": 36461.03, "out_prov": 7638.17, "inss": 3067.41, "irrf": 0.0, "out_desc": 7839.23, "sal_fam": 130.0}, "admissoes": 1, "demissoes": 2}, "2025-08": {"clt": {"qtd": 22, "bruto": 53951.51, "liquido": 32083.66, "fgts": 10562.13, "salario": 41757.48, "out_prov": 12194.03, "inss": 3077.22, "irrf": 0.0, "out_desc": 18920.63, "sal_fam": 130.0}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 23, "bruto": 56533.43, "liquido": 34381.57, "fgts": 10562.13, "salario": 44339.4, "out_prov": 12194.03, "inss": 3077.22, "irrf": 0.0, "out_desc": 19204.64, "sal_fam": 130.0}, "admissoes": 0, "demissoes": 1}, "2025-09": {"clt": {"qtd": 21, "bruto": 37438.93, "liquido": 32298.2, "fgts": 2857.54, "salario": 35321.4, "out_prov": 2117.53, "inss": 2765.12, "irrf": 0.0, "out_desc": 2544.61, "sal_fam": 169.0}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 22, "bruto": 40020.85, "liquido": 34596.11, "fgts": 2857.54, "salario": 37903.32, "out_prov": 2117.53, "inss": 2765.12, "irrf": 0.0, "out_desc": 2828.62, "sal_fam": 169.0}, "admissoes": 1, "demissoes": 2}, "2025-10": {"clt": {"qtd": 22, "bruto": 45814.7, "liquido": 31285.53, "fgts": 11181.77, "salario": 35387.37, "out_prov": 10427.33, "inss": 2995.01, "irrf": 0.0, "out_desc": 11735.66, "sal_fam": 201.5}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 23, "bruto": 48396.62, "liquido": 33583.44, "fgts": 11181.77, "salario": 37969.29, "out_prov": 10427.33, "inss": 2995.01, "irrf": 0.0, "out_desc": 12019.67, "sal_fam": 201.5}, "admissoes": 1, "demissoes": 0}, "2025-11": {"clt": {"qtd": 21, "bruto": 37662.0, "liquido": 33783.09, "fgts": 2914.37, "salario": 35255.81, "out_prov": 2406.19, "inss": 2751.6, "irrf": 0.0, "out_desc": 1387.31, "sal_fam": 260.0}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 22, "bruto": 40243.92, "liquido": 36081.0, "fgts": 2914.37, "salario": 37837.73, "out_prov": 2406.19, "inss": 2751.6, "irrf": 0.0, "out_desc": 1671.32, "sal_fam": 260.0}, "admissoes": 0, "demissoes": 1}, "2025-12": {"clt": {"qtd": 22, "bruto": 45517.69, "liquido": 17958.61, "fgts": 3454.35, "salario": 19429.65, "out_prov": 26088.04, "inss": 3412.3, "irrf": 0.0, "out_desc": 24471.78, "sal_fam": 325.0}, "pro_labore": {"qtd": 1, "bruto": 2581.92, "liquido": 2297.91, "fgts": 0.0, "salario": 2581.92, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 284.01, "sal_fam": 0.0}, "total": {"qtd": 23, "bruto": 48099.61, "liquido": 20256.52, "fgts": 3454.35, "salario": 22011.57, "out_prov": 26088.04, "inss": 3412.3, "irrf": 0.0, "out_desc": 24755.79, "sal_fam": 325.0}, "admissoes": 1, "demissoes": 0}, "2026-01": {"clt": {"qtd": 23, "bruto": 46214.21, "liquido": 21820.9, "fgts": 3428.31, "salario": 24093.65, "out_prov": 22120.56, "inss": 3347.79, "irrf": 0.0, "out_desc": 21315.68, "sal_fam": 270.16}, "pro_labore": {"qtd": 1, "bruto": 2757.23, "liquido": 2453.94, "fgts": 0.0, "salario": 2757.23, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 303.29, "sal_fam": 0.0}, "total": {"qtd": 24, "bruto": 48971.44, "liquido": 24274.84, "fgts": 3428.31, "salario": 26850.88, "out_prov": 22120.56, "inss": 3347.79, "irrf": 0.0, "out_desc": 21618.97, "sal_fam": 270.16}, "admissoes": 1, "demissoes": 0}, "2026-02": {"clt": {"qtd": 23, "bruto": 41920.57, "liquido": 26942.05, "fgts": 5759.03, "salario": 30814.34, "out_prov": 11106.23, "inss": 2982.42, "irrf": 0.0, "out_desc": 12198.72, "sal_fam": 202.62}, "pro_labore": {"qtd": 1, "bruto": 2757.23, "liquido": 2453.94, "fgts": 0.0, "salario": 2757.23, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 303.29, "sal_fam": 0.0}, "total": {"qtd": 24, "bruto": 44677.8, "liquido": 29395.99, "fgts": 5759.03, "salario": 33571.57, "out_prov": 11106.23, "inss": 2982.42, "irrf": 0.0, "out_desc": 12502.01, "sal_fam": 202.62}, "admissoes": 1, "demissoes": 1}, "2026-03": {"clt": {"qtd": 22, "bruto": 39907.61, "liquido": 35470.54, "fgts": 3062.5, "salario": 38424.32, "out_prov": 1483.29, "inss": 2934.64, "irrf": 0.0, "out_desc": 1768.09, "sal_fam": 265.66}, "pro_labore": {"qtd": 1, "bruto": 2757.23, "liquido": 2453.94, "fgts": 0.0, "salario": 2757.23, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 303.29, "sal_fam": 0.0}, "total": {"qtd": 23, "bruto": 42664.84, "liquido": 37924.48, "fgts": 3062.5, "salario": 41181.55, "out_prov": 1483.29, "inss": 2934.64, "irrf": 0.0, "out_desc": 2071.38, "sal_fam": 265.66}, "admissoes": 1, "demissoes": 2}, "2026-04": {"clt": {"qtd": 24, "bruto": 42186.31, "liquido": 36170.38, "fgts": 3201.06, "salario": 40188.58, "out_prov": 1997.73, "inss": 3063.56, "irrf": 0.0, "out_desc": 3222.53, "sal_fam": 270.16}, "pro_labore": {"qtd": 1, "bruto": 2757.23, "liquido": 2453.94, "fgts": 0.0, "salario": 2757.23, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 303.29, "sal_fam": 0.0}, "total": {"qtd": 25, "bruto": 44943.54, "liquido": 38624.32, "fgts": 3201.06, "salario": 42945.81, "out_prov": 1997.73, "inss": 3063.56, "irrf": 0.0, "out_desc": 3525.82, "sal_fam": 270.16}, "admissoes": 2, "demissoes": 0}, "2026-05": {"clt": {"qtd": 25, "bruto": 44987.68, "liquido": 38121.87, "fgts": 4376.18, "salario": 40065.97, "out_prov": 4921.71, "inss": 3283.77, "irrf": 0.0, "out_desc": 3591.05, "sal_fam": 9.01}, "pro_labore": {"qtd": 1, "bruto": 2757.23, "liquido": 2453.94, "fgts": 0.0, "salario": 2757.23, "out_prov": 0.0, "inss": 0.0, "irrf": 0.0, "out_desc": 303.29, "sal_fam": 0.0}, "total": {"qtd": 26, "bruto": 47744.91, "liquido": 40575.81, "fgts": 4376.18, "salario": 42823.2, "out_prov": 4921.71, "inss": 3283.77, "irrf": 0.0, "out_desc": 3894.34, "sal_fam": 9.01}, "admissoes": 2, "demissoes": 1}}}}</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById('report-data').textContent);
+  var MESES = ['2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05'];
+  var MES_LABEL = {'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+  var COMPANIES = [
+    { key: 'akik', nome: 'AKIK Lingerie', razaoSocial: 'AKIK LINGERIE LTDA', cnpj: '02.976.533/0001-39' },
+    { key: 'maridel', nome: 'Maridel', razaoSocial: 'MARIDEL N.F. DA SERRA LINGERIE LTDA', cnpj: '05.655.885/0001-80' }
+  ];
+  var current = 'akik';
+
+  function fBRL(v) {
+    if (v == null) return '—';
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  function fBRLFull(v) {
+    if (v == null) return '—';
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fPct(v) { return v == null ? '—' : v.toFixed(1) + '%'; }
+  function mesLabel(c) { return MES_LABEL[c.split('-')[1]] + '/' + c.split('-')[0].slice(2); }
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  // ── area/line chart (faturamento vs compras) ───────────────────────
+  function renderEvolChart(fiscal) {
+    var svg = document.getElementById('chartSvg');
+    svg.innerHTML = '';
+    var W = 860, H = 300, padL = 54, padR = 12, padT = 16, padB = 34;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+
+    var series = MESES.map(function (m) {
+      var d = fiscal[m];
+      return { m: m, fat: d ? d.faturamento : null, compras: d ? d.compras : null };
+    });
+    var allVals = series.reduce(function (acc, s) {
+      if (s.fat != null) acc.push(s.fat);
+      if (s.compras != null) acc.push(s.compras);
+      return acc;
+    }, []);
+    var maxV = Math.max.apply(null, allVals.concat([1])) * 1.12;
+    var n = series.length;
+    var x = function (i) { return padL + (innerW * i) / (n - 1); };
+    var y = function (v) { return padT + innerH - (innerH * v) / maxV; };
+
+    // gridlines + y labels
+    var ticks = 4;
+    for (var t = 0; t <= ticks; t++) {
+      var val = (maxV / ticks) * t;
+      var yy = y(val);
+      svg.appendChild(svgEl('line', { class: 'axis-line', x1: padL, x2: W - padR, y1: yy, y2: yy }));
+      var lbl = svgEl('text', { x: padL - 8, y: yy + 3, 'text-anchor': 'end' });
+      lbl.textContent = fBRL(val).replace('R$', 'R$ ');
+      svg.appendChild(lbl);
+    }
+
+    function pathFor(getter) {
+      var segs = [];
+      var open = false;
+      series.forEach(function (s, i) {
+        var v = getter(s);
+        if (v == null) { open = false; return; }
+        var cmd = open ? 'L' : 'M';
+        segs.push(cmd + x(i).toFixed(1) + ',' + y(v).toFixed(1));
+        open = true;
+      });
+      return segs.join(' ');
+    }
+    function areaFor(getter) {
+      var pts = [];
+      series.forEach(function (s, i) {
+        var v = getter(s);
+        if (v == null) return;
+        pts.push([x(i), y(v)]);
+      });
+      if (!pts.length) return '';
+      var d = 'M' + pts[0][0].toFixed(1) + ',' + y(0 in [0] ? 0 : 0).toFixed(1);
+      // build simple area: baseline to first point, along points, back to baseline
+      var base = padT + innerH;
+      d = 'M' + pts[0][0].toFixed(1) + ',' + base;
+      pts.forEach(function (p) { d += ' L' + p[0].toFixed(1) + ',' + p[1].toFixed(1); });
+      d += ' L' + pts[pts.length - 1][0].toFixed(1) + ',' + base + ' Z';
+      return d;
+    }
+
+    var comprasArea = areaFor(function (s) { return s.compras; });
+    if (comprasArea) svg.appendChild(svgEl('path', { d: comprasArea, fill: 'var(--green)', opacity: '.14' }));
+    var comprasPath = pathFor(function (s) { return s.compras; });
+    if (comprasPath) svg.appendChild(svgEl('path', { d: comprasPath, fill: 'none', stroke: 'var(--green)', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+
+    var fatArea = areaFor(function (s) { return s.fat; });
+    if (fatArea) svg.appendChild(svgEl('path', { d: fatArea, fill: 'var(--gold)', opacity: '.16' }));
+    var fatPath = pathFor(function (s) { return s.fat; });
+    if (fatPath) svg.appendChild(svgEl('path', { d: fatPath, fill: 'none', stroke: 'var(--gold)', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+
+    // dots + x labels
+    series.forEach(function (s, i) {
+      var xi = x(i);
+      if (s.fat != null) svg.appendChild(svgEl('circle', { cx: xi, cy: y(s.fat), r: 3, fill: 'var(--gold)' }));
+      if (s.compras != null) svg.appendChild(svgEl('circle', { cx: xi, cy: y(s.compras), r: 3, fill: 'var(--green)' }));
+      if (s.compras == null && s.fat != null) {
+        var gapTxt = svgEl('text', { x: xi, y: padT + 12, 'text-anchor': 'middle', class: 'gap-note' });
+        gapTxt.textContent = '?';
+        svg.appendChild(gapTxt);
+      }
+      var xl = svgEl('text', { x: xi, y: H - 10, 'text-anchor': 'middle' });
+      xl.textContent = mesLabel(s.m);
+      svg.appendChild(xl);
+    });
+  }
+
+  function renderDPChart(dp) {
+    var svg = document.getElementById('dpChartSvg');
+    svg.innerHTML = '';
+    var W = 860, H = 220, padL = 40, padR = 12, padT = 14, padB = 30;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var series = MESES.map(function (m) { return { m: m, qtd: dp[m] ? dp[m].total.qtd : null }; });
+    var vals = series.filter(function (s) { return s.qtd != null; }).map(function (s) { return s.qtd; });
+    var maxV = Math.max.apply(null, vals.concat([1])) * 1.2;
+    var minV = Math.min.apply(null, vals.concat([maxV])) * 0.85;
+    var n = series.length;
+    var x = function (i) { return padL + (innerW * i) / (n - 1); };
+    var y = function (v) { return padT + innerH - (innerH * (v - minV)) / (maxV - minV); };
+
+    svg.appendChild(svgEl('line', { class: 'axis-line', x1: padL, x2: W - padR, y1: padT + innerH, y2: padT + innerH }));
+
+    var pts = series.filter(function (s) { return s.qtd != null; }).map(function (s, i) { return [x(series.indexOf(s)), y(s.qtd)]; });
+    var d = pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    svg.appendChild(svgEl('path', { d: d, fill: 'none', stroke: 'var(--gold)', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+
+    series.forEach(function (s, i) {
+      var xi = x(i);
+      if (s.qtd != null) {
+        svg.appendChild(svgEl('circle', { cx: xi, cy: y(s.qtd), r: 3, fill: 'var(--gold)' }));
+        var lbl = svgEl('text', { x: xi, y: y(s.qtd) - 9, 'text-anchor': 'middle' });
+        lbl.textContent = s.qtd;
+        svg.appendChild(lbl);
+      }
+      var xl = svgEl('text', { x: xi, y: H - 8, 'text-anchor': 'middle' });
+      xl.textContent = mesLabel(s.m);
+      svg.appendChild(xl);
+    });
+  }
+
+  function renderKPIs(fiscal, dp) {
+    var meses = MESES.filter(function (m) { return fiscal[m]; });
+    var fatTotal = meses.reduce(function (s, m) { return s + (fiscal[m].faturamento || 0); }, 0);
+    var comprasMeses = MESES.filter(function (m) { return fiscal[m] && fiscal[m].compras != null; });
+    var comprasTotal = comprasMeses.reduce(function (s, m) { return s + fiscal[m].compras; }, 0);
+    var margem = fatTotal - comprasTotal;
+    var margemPct = fatTotal ? (margem / fatTotal) * 100 : null;
+    var ultimoMesDP = MESES.filter(function (m) { return dp[m]; }).slice(-1)[0];
+    var headcount = ultimoMesDP ? dp[ultimoMesDP].total.qtd : null;
+    var admissoes = MESES.reduce(function (s, m) { return s + (dp[m] && dp[m].admissoes ? dp[m].admissoes : 0); }, 0);
+    var demissoes = MESES.reduce(function (s, m) { return s + (dp[m] && dp[m].demissoes ? dp[m].demissoes : 0); }, 0);
+
+    var tiles = [
+      { label: 'Faturamento no período', value: fBRL(fatTotal), sub: meses.length + ' meses apurados', cls: '' },
+      { label: 'Compras no período', value: fBRL(comprasTotal), sub: comprasMeses.length + ' de ' + MESES.length + ' meses apurados', cls: '' },
+      { label: 'Margem aproximada', value: fBRL(margem), sub: fPct(margemPct) + ' do faturamento (só meses com os dois dados)', cls: margem >= 0 ? 'green' : '' },
+      { label: 'Headcount atual', value: headcount != null ? headcount : '—', sub: ultimoMesDP ? mesLabel(ultimoMesDP) : '', cls: '' },
+      { label: 'Movimentação CLT', value: '+' + admissoes + ' / −' + demissoes, sub: 'admissões / demissões no período', cls: '' },
+    ];
+    var el = document.getElementById('kpis');
+    el.innerHTML = tiles.map(function (t) {
+      return '<div class="kpi"><div class="label">' + t.label + '</div>' +
+        '<div class="value tabular ' + t.cls + '">' + t.value + '</div>' +
+        '<div class="sub">' + t.sub + '</div></div>';
+    }).join('');
+  }
+
+  function renderTable(fiscal) {
+    var rows = MESES.map(function (m) {
+      var d = fiscal[m];
+      if (!d) return '<tr><td>' + mesLabel(m) + '</td><td class="dim tabular" colspan="3">sem dado apurado</td></tr>';
+      var margem = d.compras != null ? d.faturamento - d.compras : null;
+      return '<tr><td>' + mesLabel(m) + '</td>' +
+        '<td class="tabular">' + fBRLFull(d.faturamento) + '</td>' +
+        '<td class="tabular' + (d.compras == null ? ' dim' : '') + '">' + fBRLFull(d.compras) + '</td>' +
+        '<td class="tabular' + (margem == null ? ' dim' : '') + '">' + fBRLFull(margem) + '</td></tr>';
+    }).join('');
+    document.getElementById('tableBody').innerHTML = rows;
+  }
+
+  function renderDPSummary(dp) {
+    var ultimoMes = MESES.filter(function (m) { return dp[m]; }).slice(-1)[0];
+    var d = dp[ultimoMes];
+    var card = document.getElementById('dpSummaryCard');
+    if (!d) { card.innerHTML = '<p style="color:var(--ink-faint);font-size:13px;">Sem dado de folha.</p>'; return; }
+    var rows = [
+      ['Competência', mesLabel(ultimoMes)],
+      ['Headcount (CLT)', d.clt.qtd],
+      ['Pró-labore', d.pro_labore.qtd],
+      ['Folha bruta', fBRLFull(d.total.bruto)],
+      ['Folha líquida', fBRLFull(d.total.liquido)],
+      ['FGTS do mês', fBRLFull(d.total.fgts)],
+    ];
+    card.innerHTML = '<h3 style="font-size:13px;font-family:system-ui, -apple-system, Roboto, Arial, sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:10px;">Último mês fechado</h3>' +
+      '<table><tbody>' + rows.map(function (r) {
+        return '<tr><td style="text-align:left;color:var(--ink-soft);">' + r[0] + '</td><td class="tabular" style="font-weight:700;">' + r[1] + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function renderRankBars(containerId, items, maxItems) {
+    var el = document.getElementById(containerId);
+    if (!items || !items.length) { el.innerHTML = '<p style="color:var(--ink-faint);font-size:13px;">Sem dado disponível.</p>'; return; }
+    var top = items.slice(0, maxItems || 6);
+    var max = top[0].valor;
+    el.innerHTML = top.map(function (it, i) {
+      var pct = max ? (it.valor / max) * 100 : 0;
+      return '<div class="rank-row-wrap"><div class="rank-row">' +
+        '<span class="n">' + (i + 1) + '</span>' +
+        '<span class="name">' + it.nome + '</span>' +
+        '<span class="val tabular">' + fBRL(it.valor) + '</span>' +
+        '</div><div class="rank-bar-track"><div class="rank-bar-fill" style="width:' + pct.toFixed(1) + '%"></div></div></div>';
+    }).join('');
+  }
+
+  function aggregateUF(fiscal, field) {
+    var totals = {};
+    MESES.forEach(function (m) {
+      var d = fiscal[m];
+      if (!d || !d[field]) return;
+      Object.keys(d[field]).forEach(function (uf) {
+        totals[uf] = (totals[uf] || 0) + d[field][uf];
+      });
+    });
+    return Object.keys(totals).map(function (uf) { return { nome: uf, valor: totals[uf] }; }).sort(function (a, b) { return b.valor - a.valor; });
+  }
+
+  function aggregateNome(fiscal, field) {
+    var totals = {};
+    MESES.forEach(function (m) {
+      var d = fiscal[m];
+      if (!d || !d[field]) return;
+      d[field].forEach(function (it) {
+        totals[it.nome] = (totals[it.nome] || 0) + it.valor;
+      });
+    });
+    return Object.keys(totals).map(function (nome) { return { nome: nome, valor: totals[nome] }; }).sort(function (a, b) { return b.valor - a.valor; });
+  }
+
+  function renderUF(fiscal) {
+    var uf = aggregateUF(fiscal, 'vendas_por_uf');
+    var total = uf.reduce(function (s, u) { return s + u.valor; }, 0);
+    var el = document.getElementById('ufList');
+    if (!uf.length) { el.innerHTML = '<p style="color:var(--ink-faint);font-size:13px;">Sem dado disponível.</p>'; return; }
+    var max = uf[0].valor;
+    el.innerHTML = uf.map(function (u, i) {
+      var pct = max ? (u.valor / max) * 100 : 0;
+      var pctTotal = total ? (u.valor / total) * 100 : 0;
+      return '<div class="rank-row-wrap"><div class="rank-row">' +
+        '<span class="n">' + (i + 1) + '</span>' +
+        '<span class="name">' + u.nome + '</span>' +
+        '<span class="val tabular">' + fBRL(u.valor) + ' · ' + pctTotal.toFixed(0) + '%</span>' +
+        '</div><div class="rank-bar-track"><div class="rank-bar-fill" style="width:' + pct.toFixed(1) + '%"></div></div></div>';
+    }).join('');
+  }
+
+  function renderFooter(companyKey) {
+    var notes = {
+      akik: '<b>AKIK Lingerie</b> — faturamento mês a mês: Relatório de Faturamento oficial do Domínio (13/13 meses). Compras: SPED Fiscal (dez/25 a jun/26) e XML de NFe de entrada reais (mai-nov/25, reconciliado contra o SPED em dez/25 — bateu exato). Folha: Extrato Mensal do Domínio, 13/13 meses.',
+      maridel: '<b>Maridel</b> — faturamento mês a mês: Relatório de Faturamento oficial do Domínio (13/13 meses). Compras: Acompanhamento de Entradas (Domínio), 11/13 meses — maio e junho/2025 ainda não apurados. Folha: Extrato Mensal do Domínio, 13/13 meses. Concentração geográfica (RJ) confirmada pelo Acompanhamento de Saídas/Entradas do período inteiro.'
+    };
+    document.getElementById('footerNote').innerHTML = notes[companyKey] + '<br><br>Gerado a partir do Report Semestral da RN Contabilidade — números sujeitos a revisão contábil final.';
+  }
+
+  function render(companyKey) {
+    current = companyKey;
+    var c = DATA[companyKey];
+    var fiscal = c.fiscal, dp = c.dp;
+    renderKPIs(fiscal, dp);
+    renderEvolChart(fiscal);
+    renderTable(fiscal);
+    renderDPChart(dp);
+    renderDPSummary(dp);
+    renderUF(fiscal);
+    renderRankBars('clientesList', aggregateNome(fiscal, 'top_clientes'), 6);
+    renderRankBars('fornecedoresList', aggregateNome(fiscal, 'top_fornecedores'), 6);
+    renderFooter(companyKey);
+
+    document.querySelectorAll('.switcher button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.key === companyKey);
+    });
+  }
+
+  function init() {
+    var sw = document.getElementById('switcher');
+    sw.innerHTML = COMPANIES.map(function (c) {
+      return '<button data-key="' + c.key + '">' + c.nome + '</button>';
+    }).join('');
+    sw.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-key]');
+      if (btn) render(btn.dataset.key);
+    });
+    render('akik');
+  }
+
+  init();
+})();
+</script>
