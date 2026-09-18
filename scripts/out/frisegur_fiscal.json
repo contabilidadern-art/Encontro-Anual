@@ -1,0 +1,403 @@
+{
+  "13563628000147": {
+    "razao_social": "FRISEGUR VIGILANCIA E SEGURANCA LTDA.",
+    "competencias": {
+      "2026-01": {
+        "faturamento": 62593.31,
+        "vendas_por_uf": {
+          "RJ": 32609.07,
+          "SP": 29984.24
+        },
+        "top_clientes": [
+          {
+            "nome": "CONSORCIO - FLUMINENSE",
+            "valor": 29984.24
+          },
+          {
+            "nome": "CONCESSIONARIA ROTA 116 S/A",
+            "valor": 17384.21
+          },
+          {
+            "nome": "LMG ENGENHARIA LTDA",
+            "valor": 14146.86
+          },
+          {
+            "nome": "FRIBURGO SHOPPING CENTER",
+            "valor": 1078.0
+          }
+        ]
+      },
+      "2026-02": {
+        "faturamento": 110411.6,
+        "vendas_por_uf": {
+          "RJ": 110411.6
+        },
+        "top_clientes": [
+          {
+            "nome": "CONCESSIONARIA ROTA 116 S/A",
+            "valor": 107865.6
+          },
+          {
+            "nome": "GSM SOLARION 02 SA",
+            "valor": 1818.0
+          },
+          {
+            "nome": "MITROPLAST ADMINISTRADORA DE IMOVEIS PROPRIOS LTDA",
+            "valor": 500.0
+          },
+          {
+            "nome": "RCPN DO 6 DISTRITO DA COMARCA DE NOVA FRIBURGO",
+            "valor": 228.0
+          }
+        ]
+      },
+      "2026-04": {
+        "faturamento": 78899.52,
+        "vendas_por_uf": {
+          "RJ": 48915.28,
+          "SP": 29984.24
+        },
+        "top_clientes": [
+          {
+            "nome": "CONCESSIONARIA ROTA 116 S/A",
+            "valor": 34768.42
+          },
+          {
+            "nome": "CONSORCIO - FLUMINENSE",
+            "valor": 29984.24
+          },
+          {
+            "nome": "LMG ENGENHARIA LTDA",
+            "valor": 14146.86
+          }
+        ]
+      },
+      "2026-05": {
+        "faturamento": 287074.31,
+        "vendas_por_uf": {
+          "RJ": 257090.07,
+          "SP": 29984.24
+        },
+        "top_clientes": [
+          {
+            "nome": "CONCESSIONARIA ROTA 116 S/A",
+            "valor": 239096.21
+          },
+          {
+            "nome": "CONSORCIO - FLUMINENSE",
+            "valor": 29984.24
+          },
+          {
+            "nome": "LMG ENGENHARIA LTDA",
+            "valor": 14146.86
+          },
+          {
+            "nome": "GSM SOLARION 02 SA",
+            "valor": 1937.0
+          },
+          {
+            "nome": "FRIBURGO SHOPPING CENTER",
+            "valor": 1149.0
+          },
+          {
+            "nome": "MITROPLAST ADMINISTRADORA DE IMOVEIS PROPRIOS LTDA",
+            "valor": 533.0
+          },
+          {
+            "nome": "RCPN DO 6 DISTRITO DA COMARCA DE NOVA FRIBURGO",
+            "valor": 228.0
+          }
+        ]
+      },
+      "2026-06": {
+        "faturamento": 111127.0,
+        "vendas_por_uf": {
+          "RJ": 111127.0
+        },
+        "top_clientes": [
+          {
+            "nome": "CONCESSIONARIA ROTA 116 S/A",
+            "valor": 107280.0
+          },
+          {
+            "nome": "GSM SOLARION 02 SA",
+            "valor": 1937.0
+          },
+          {
+            "nome": "FRIBURGO SHOPPING CENTER",
+            "valor": 1149.0
+          },
+          {
+            "nome": "MITROPLAST ADMINISTRADORA DE IMOVEIS PROPRIOS LTDA",
+            "valor": 533.0
+          },
+          {
+            "nome": "RCPN DO 6 DISTRITO DA COMARCA DE NOVA FRIBURGO",
+            "valor": 228.0
+          }
+        ]
+      }
+    }
+  },
+  "30118621000135": {
+    "razao_social": "FRISEGUR SERVICOS E MONITORAMENTO ELETRONICO LTDA",
+    "competencias": {
+      "2026-01": {
+        "faturamento": 2072.0,
+        "vendas_por_uf": {
+          "RJ": 2072.0
+        },
+        "top_clientes": [
+          {
+            "nome": "ASSOCIACAO NOBREGA DE EDUCACAO E ASSISTENCIA SOCIAL - ANEAS",
+            "valor": 1620.0
+          },
+          {
+            "nome": "LMG ENGENHARIA LTDA",
+            "valor": 452.0
+          }
+        ]
+      },
+      "2026-02": {
+        "faturamento": 149265.44,
+        "vendas_por_uf": {
+          "RJ": 149265.44
+        },
+        "top_clientes": [
+          {
+            "nome": "INJETEC DE FRIBURGO INDUSTRIA E COMERCIO LTDA",
+            "valor": 30874.44
+          },
+          {
+            "nome": "CONDOMINIO PARQUE DA PEDRA",
+            "valor": 22302.4
+          },
+          {
+            "nome": "CBS INDUSTRIA COMERCIO IMPORTACAO E EXPORTACAO LTDA EM RECUPERACAO JUDICIAL",
+            "valor": 16074.0
+          },
+          {
+            "nome": "CONDOMINIO SOLAR DA PEDRA",
+            "valor": 14691.68
+          },
+          {
+            "nome": "YPU EMPREENDIMENTOS E ATIVIDADES IMOBILIARIAS S.A.",
+            "valor": 14286.72
+          },
+          {
+            "nome": "CONDOMINIO DO EDIFICIO RESIDENCIAL DA SERRA",
+            "valor": 9041.26
+          },
+          {
+            "nome": "MORADAS LAGOA SECA INCORPORACOES IMOBILIARIAS LTDA",
+            "valor": 7595.0
+          },
+          {
+            "nome": "NOVA FRIBURGO FUTEBOL CLUBE",
+            "valor": 5636.94
+          },
+          {
+            "nome": "INDUSTRIA THURLERFLEX LTDA.",
+            "valor": 5112.0
+          },
+          {
+            "nome": "CONDOMINIO GREEN PARK",
+            "valor": 4395.0
+          }
+        ]
+      },
+      "2026-03": {
+        "faturamento": 138627.1,
+        "vendas_por_uf": {
+          "RJ": 138627.1
+        },
+        "top_clientes": [
+          {
+            "nome": "INJETEC DE FRIBURGO INDUSTRIA E COMERCIO LTDA",
+            "valor": 27748.31
+          },
+          {
+            "nome": "CONDOMINIO SOLAR DA PEDRA",
+            "valor": 16217.36
+          },
+          {
+            "nome": "CBS INDUSTRIA COMERCIO IMPORTACAO E EXPORTACAO LTDA EM RECUPERACAO JUDICIAL",
+            "valor": 16074.0
+          },
+          {
+            "nome": "YPU EMPREENDIMENTOS E ATIVIDADES IMOBILIARIAS S.A.",
+            "valor": 15817.44
+          },
+          {
+            "nome": "CONDOMINIO PARQUE DA PEDRA",
+            "valor": 15562.95
+          },
+          {
+            "nome": "MORADAS LAGOA SECA INCORPORACOES IMOBILIARIAS LTDA",
+            "valor": 7595.0
+          },
+          {
+            "nome": "NOVA FRIBURGO FUTEBOL CLUBE",
+            "valor": 5642.98
+          },
+          {
+            "nome": "INDUSTRIA THURLERFLEX LTDA.",
+            "valor": 5112.0
+          },
+          {
+            "nome": "CONDOMINIO DO EDIFICIO RESIDENCIAL DA SERRA",
+            "valor": 4784.16
+          },
+          {
+            "nome": "CONDOMINIO GREEN PARK",
+            "valor": 4359.0
+          }
+        ]
+      },
+      "2026-04": {
+        "faturamento": 146323.98,
+        "vendas_por_uf": {
+          "RJ": 146078.98
+        },
+        "top_clientes": [
+          {
+            "nome": "INJETEC DE FRIBURGO INDUSTRIA E COMERCIO LTDA",
+            "valor": 34601.2
+          },
+          {
+            "nome": "CBS INDUSTRIA COMERCIO IMPORTACAO E EXPORTACAO LTDA EM RECUPERACAO JUDICIAL",
+            "valor": 17327.0
+          },
+          {
+            "nome": "CONDOMINIO SOLAR DA PEDRA",
+            "valor": 16902.0
+          },
+          {
+            "nome": "YPU EMPREENDIMENTOS E ATIVIDADES IMOBILIARIAS S.A.",
+            "valor": 16495.2
+          },
+          {
+            "nome": "CONDOMINIO PARQUE DA PEDRA",
+            "valor": 11998.68
+          },
+          {
+            "nome": "MORADAS LAGOA SECA INCORPORACOES IMOBILIARIAS LTDA",
+            "valor": 8172.0
+          },
+          {
+            "nome": "INDUSTRIA THURLERFLEX LTDA.",
+            "valor": 5500.0
+          },
+          {
+            "nome": "NOVA FRIBURGO FUTEBOL CLUBE",
+            "valor": 5488.0
+          },
+          {
+            "nome": "CONDOMINIO DO EDIFICIO RESIDENCIAL DA SERRA",
+            "valor": 4864.0
+          },
+          {
+            "nome": "CONDOMINIO GREEN PARK",
+            "valor": 4729.0
+          }
+        ]
+      },
+      "2026-05": {
+        "faturamento": 147860.23,
+        "vendas_por_uf": {
+          "RJ": 147615.23
+        },
+        "top_clientes": [
+          {
+            "nome": "INJETEC DE FRIBURGO INDUSTRIA E COMERCIO LTDA",
+            "valor": 29881.91
+          },
+          {
+            "nome": "CONDOMINIO SOLAR DA PEDRA",
+            "valor": 21802.7
+          },
+          {
+            "nome": "CBS INDUSTRIA COMERCIO IMPORTACAO E EXPORTACAO LTDA EM RECUPERACAO JUDICIAL",
+            "valor": 17327.0
+          },
+          {
+            "nome": "YPU EMPREENDIMENTOS E ATIVIDADES IMOBILIARIAS S.A.",
+            "valor": 17045.04
+          },
+          {
+            "nome": "CONDOMINIO PARQUE DA PEDRA",
+            "valor": 11998.68
+          },
+          {
+            "nome": "MORADAS LAGOA SECA INCORPORACOES IMOBILIARIAS LTDA",
+            "valor": 8172.0
+          },
+          {
+            "nome": "INDUSTRIA THURLERFLEX LTDA.",
+            "valor": 5500.0
+          },
+          {
+            "nome": "NOVA FRIBURGO FUTEBOL CLUBE",
+            "valor": 5488.0
+          },
+          {
+            "nome": "CONDOMINIO DO EDIFICIO RESIDENCIAL DA SERRA",
+            "valor": 4864.0
+          },
+          {
+            "nome": "CONDOMINIO GREEN PARK",
+            "valor": 4729.0
+          }
+        ]
+      },
+      "2026-06": {
+        "faturamento": 146887.64,
+        "vendas_por_uf": {
+          "RJ": 146642.64
+        },
+        "top_clientes": [
+          {
+            "nome": "INJETEC DE FRIBURGO INDUSTRIA E COMERCIO LTDA",
+            "valor": 31497.76
+          },
+          {
+            "nome": "CBS INDUSTRIA COMERCIO IMPORTACAO E EXPORTACAO LTDA EM RECUPERACAO JUDICIAL",
+            "valor": 17327.0
+          },
+          {
+            "nome": "CONDOMINIO SOLAR DA PEDRA",
+            "valor": 17217.0
+          },
+          {
+            "nome": "YPU EMPREENDIMENTOS E ATIVIDADES IMOBILIARIAS S.A.",
+            "valor": 16495.2
+          },
+          {
+            "nome": "CONDOMINIO PARQUE DA PEDRA",
+            "valor": 11998.68
+          },
+          {
+            "nome": "INDUSTRIA THURLERFLEX LTDA.",
+            "valor": 10944.0
+          },
+          {
+            "nome": "MORADAS LAGOA SECA INCORPORACOES IMOBILIARIAS LTDA",
+            "valor": 8172.0
+          },
+          {
+            "nome": "NOVA FRIBURGO FUTEBOL CLUBE",
+            "valor": 5488.0
+          },
+          {
+            "nome": "CONDOMINIO DO EDIFICIO RESIDENCIAL DA SERRA",
+            "valor": 4864.0
+          },
+          {
+            "nome": "CONDOMINIO GREEN PARK",
+            "valor": 4729.0
+          }
+        ]
+      }
+    }
+  }
+}

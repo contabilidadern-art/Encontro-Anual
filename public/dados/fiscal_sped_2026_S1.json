@@ -1,0 +1,573 @@
+{
+  "cliente": {
+    "razao_social": "RODRIGO E EMILIA MERCEARIA LTDA",
+    "cnpj": "07809869000120"
+  },
+  "fiscal": {
+    "2026-01": {
+      "faturamento": 3133375.57,
+      "vendas": 3133375.57,
+      "compras": 2876740.37,
+      "vendas_por_uf": {
+        "RJ": 3131914.12,
+        "MG": 1461.45
+      },
+      "top_clientes": [
+        {
+          "nome": "Consumidor Final",
+          "valor": 3097877.19
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOP.",
+          "valor": 14113.52
+        },
+        {
+          "nome": "AKIK LINGERIE LTDA",
+          "valor": 5560.63
+        },
+        {
+          "nome": "AMORECO JH CONFECCOES DE ROUPAS INTIMAS LTDA",
+          "valor": 2570.18
+        },
+        {
+          "nome": "DISTR. NITEROI DE PRODUTOS ALIM. LTDA.",
+          "valor": 1809.38
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOPER",
+          "valor": 1639.0
+        },
+        {
+          "nome": "PASTIFICIO SELMI S/A",
+          "valor": 1440.66
+        },
+        {
+          "nome": "CEREALISTA PEREIRA IMP. E EXP. LTDA",
+          "valor": 1321.68
+        },
+        {
+          "nome": "CENTRO DE NEFROLOGIA DE NOVA FRIBURGO",
+          "valor": 986.33
+        },
+        {
+          "nome": "GEMINI ENGENHARIA LTDA",
+          "valor": 950.16
+        }
+      ],
+      "top_fornecedores": [
+        {
+          "nome": "MANUANE DE LIMA VOGAS - ME",
+          "valor": 237941.1
+        },
+        {
+          "nome": "GONCALVES & TORTOLA S/A",
+          "valor": 177666.43
+        },
+        {
+          "nome": "ATACADAO S.A.",
+          "valor": 175808.08
+        },
+        {
+          "nome": "BRF S.A.",
+          "valor": 156275.06
+        },
+        {
+          "nome": "COOP REGIONAL AGROPEC DE MACUCO LTDA",
+          "valor": 142426.68
+        },
+        {
+          "nome": "FRIGORIFICO CRUZEIRO DO SUL EIRELI",
+          "valor": 124170.82
+        },
+        {
+          "nome": "CAFE TRES CORACOES S.A",
+          "valor": 83212.61
+        },
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 78744.49
+        },
+        {
+          "nome": "RAMOS E VEIGA COMERCIAL LTDA",
+          "valor": 73236.95
+        },
+        {
+          "nome": "RIO DE JANEIRO REFRESCOS LTDA",
+          "valor": 72077.76
+        }
+      ]
+    },
+    "2026-02": {
+      "faturamento": 3007443.95,
+      "vendas": 3007443.95,
+      "compras": 3371562.12,
+      "vendas_por_uf": {
+        "RJ": 3006654.64,
+        "MG": 480.43,
+        "ES": 308.88
+      },
+      "top_clientes": [
+        {
+          "nome": "Consumidor Final",
+          "valor": 2977843.58
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOP.",
+          "valor": 12517.88
+        },
+        {
+          "nome": "AKIK LINGERIE LTDA",
+          "valor": 3135.0
+        },
+        {
+          "nome": "AMORECO JH CONFECCOES DE ROUPAS INTIMAS LTDA",
+          "valor": 2511.94
+        },
+        {
+          "nome": "IGREJA VINHA NOVA",
+          "valor": 2020.81
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOPER",
+          "valor": 1406.82
+        },
+        {
+          "nome": "CENTRO DE NEFROLOGIA DE NOVA FRIBURGO",
+          "valor": 964.85
+        },
+        {
+          "nome": "GEMINI ENGENHARIA LTDA",
+          "valor": 859.16
+        },
+        {
+          "nome": "ARP EMPREENDIMENTOS IMOBILIARIOS LTDA",
+          "valor": 838.06
+        },
+        {
+          "nome": "NESTLÉ BRASIL LTDA.",
+          "valor": 737.3
+        }
+      ],
+      "top_fornecedores": [
+        {
+          "nome": "GONCALVES & TORTOLA S/A",
+          "valor": 271812.29
+        },
+        {
+          "nome": "MANUANE DE LIMA VOGAS - ME",
+          "valor": 231665.27
+        },
+        {
+          "nome": "JBS S.A.",
+          "valor": 183470.38
+        },
+        {
+          "nome": "COOP REGIONAL AGROPEC DE MACUCO LTDA",
+          "valor": 153441.66
+        },
+        {
+          "nome": "ATACADAO S.A.",
+          "valor": 137960.04
+        },
+        {
+          "nome": "BRF S.A.",
+          "valor": 125905.13
+        },
+        {
+          "nome": "CAFE TRES CORACOES S.A",
+          "valor": 108103.38
+        },
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 101295.29
+        },
+        {
+          "nome": "MIX CERTO DISTRIBUIDORA DE COSMETICOS ALIMENTOS E LIMPEZA LTDA",
+          "valor": 100536.37
+        },
+        {
+          "nome": "ARBOR BRASIL INDUSTRIA BRASILEIRA DE BEB",
+          "valor": 89315.01
+        }
+      ]
+    },
+    "2026-03": {
+      "faturamento": 3956129.07,
+      "vendas": 3956129.07,
+      "compras": 3842192.86,
+      "vendas_por_uf": {
+        "RJ": 3954482.97,
+        "MG": 69.35,
+        "RS": 1576.75
+      },
+      "top_clientes": [
+        {
+          "nome": "Consumidor Final",
+          "valor": 3915355.15
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOP.",
+          "valor": 12205.58
+        },
+        {
+          "nome": "AKIK LINGERIE LTDA",
+          "valor": 5032.54
+        },
+        {
+          "nome": "IGREJA PRESBITERIANA DE OLARIA",
+          "valor": 3733.0
+        },
+        {
+          "nome": "SASSARICANDO CONFECCAO E COMERCIO LTDA",
+          "valor": 2314.26
+        },
+        {
+          "nome": "AMORECO JH CONFECCOES DE ROUPAS INTIMAS LTDA",
+          "valor": 2314.26
+        },
+        {
+          "nome": "COMARY INDUSTRIA DE BEBIDAS LTDA",
+          "valor": 1643.97
+        },
+        {
+          "nome": "ASSOCIACAO EDUCACIONAL EVANGELICA",
+          "valor": 1626.4
+        },
+        {
+          "nome": "IRMAOS TREVISAN S/A IND.COM.AGRICULTURA",
+          "valor": 1576.75
+        },
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 1501.32
+        }
+      ],
+      "top_fornecedores": [
+        {
+          "nome": "MANUANE DE LIMA VOGAS - ME",
+          "valor": 203175.63
+        },
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 198906.91
+        },
+        {
+          "nome": "LATICINIOS BELA VISTA S.A.",
+          "valor": 164945.21
+        },
+        {
+          "nome": "COOP REGIONAL AGROPEC DE MACUCO LTDA",
+          "valor": 158794.34
+        },
+        {
+          "nome": "BRF S.A.",
+          "valor": 147726.13
+        },
+        {
+          "nome": "GONCALVES & TORTOLA S/A",
+          "valor": 132437.61
+        },
+        {
+          "nome": "ATACADAO S.A.",
+          "valor": 119312.05
+        },
+        {
+          "nome": "GARCIA ATACADISTA LTDA",
+          "valor": 111753.18
+        },
+        {
+          "nome": "RIO DE JANEIRO REFRESCOS LTDA",
+          "valor": 93808.13
+        },
+        {
+          "nome": "DISTRIBUIDORA DE FRIOS OURO LTDA",
+          "valor": 92220.0
+        }
+      ]
+    },
+    "2026-04": {
+      "faturamento": 3477377.29,
+      "vendas": 3477377.29,
+      "compras": 3241573.42,
+      "vendas_por_uf": {
+        "RJ": 3475645.64,
+        "ES": 340.4,
+        "RS": 1391.25
+      },
+      "top_clientes": [
+        {
+          "nome": "Consumidor Final",
+          "valor": 3435762.05
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOP.",
+          "valor": 20054.8
+        },
+        {
+          "nome": "AKIK LINGERIE LTDA",
+          "valor": 4379.2
+        },
+        {
+          "nome": "IGREJA ASSEMBLEIA DE DEUS DE OLARIA",
+          "valor": 1795.82
+        },
+        {
+          "nome": "IRMAOS TREVISAN S/A INDUSTRIA, COMERCIO E AGRICULT",
+          "valor": 1391.25
+        },
+        {
+          "nome": "ARP EMPREENDIMENTOS IMOBILIARIOS LTDA",
+          "valor": 1371.22
+        },
+        {
+          "nome": "ASSOCIACAO EDUCACIONAL EVANGELICA",
+          "valor": 1182.8
+        },
+        {
+          "nome": "GEMINI ENGENHARIA LTDA",
+          "valor": 1178.29
+        },
+        {
+          "nome": "IGREJA BATISTA NOVA SUICA",
+          "valor": 932.29
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOPER",
+          "valor": 911.04
+        }
+      ],
+      "top_fornecedores": [
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 193502.47
+        },
+        {
+          "nome": "MANUANE DE LIMA VOGAS - ME",
+          "valor": 191579.16
+        },
+        {
+          "nome": "JBS S.A.",
+          "valor": 182963.81
+        },
+        {
+          "nome": "GONCALVES & TORTOLA S/A",
+          "valor": 179517.71
+        },
+        {
+          "nome": "COOP REGIONAL AGROPEC DE MACUCO LTDA",
+          "valor": 177106.64
+        },
+        {
+          "nome": "ATACADAO S.A.",
+          "valor": 165862.47
+        },
+        {
+          "nome": "CAFE TRES CORACOES S.A",
+          "valor": 136081.16
+        },
+        {
+          "nome": "BUNGE ALIMENTOS S/A",
+          "valor": 103950.0
+        },
+        {
+          "nome": "NESTLÉ BRASIL LTDA.",
+          "valor": 100883.63
+        },
+        {
+          "nome": "NOGUEIRA RIVELLI IRMAOS LTDA",
+          "valor": 91246.0
+        }
+      ]
+    },
+    "2026-05": {
+      "faturamento": 3436844.68,
+      "vendas": 3436844.68,
+      "compras": 3517534.68,
+      "vendas_por_uf": {
+        "RJ": 3434225.27,
+        "MG": 768.89,
+        "SP": 70.68,
+        "ES": 841.5,
+        "PE": 938.34
+      },
+      "top_clientes": [
+        {
+          "nome": "Consumidor Final",
+          "valor": 3390462.33
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOP.",
+          "valor": 14265.57
+        },
+        {
+          "nome": "AKIK LINGERIE LTDA",
+          "valor": 4632.0
+        },
+        {
+          "nome": "ASSOCIACAO EDUCACIONAL EVANGELICA",
+          "valor": 3543.65
+        },
+        {
+          "nome": "IGREJA PRESBITERIANA DE OLARIA",
+          "valor": 3531.21
+        },
+        {
+          "nome": "AMORECO JH CONFECCOES DE ROUPAS INTIMAS LTDA",
+          "valor": 2456.76
+        },
+        {
+          "nome": "ROGERIO BARRADAS DE ARAUJO",
+          "valor": 2400.0
+        },
+        {
+          "nome": "GEMINI ENGENHARIA LTDA",
+          "valor": 1580.64
+        },
+        {
+          "nome": "CENTRO DE NEFROLOGIA DE NOVA FRIBURGO",
+          "valor": 1016.4
+        },
+        {
+          "nome": "ASSOCIACAO FRIBURGUENSE AMIGOS E PAIS DO",
+          "valor": 967.89
+        }
+      ],
+      "top_fornecedores": [
+        {
+          "nome": "FRIGORIFICO CRUZEIRO DO SUL EIRELI",
+          "valor": 219288.99
+        },
+        {
+          "nome": "COOP REGIONAL AGROPEC DE MACUCO LTDA",
+          "valor": 214073.38
+        },
+        {
+          "nome": "SILVEIRA E PACHECO COMERCIO DE PRODUTOS EM GERAL L",
+          "valor": 201737.26
+        },
+        {
+          "nome": "JBS S.A.",
+          "valor": 159336.49
+        },
+        {
+          "nome": "BRF S.A.",
+          "valor": 146339.8
+        },
+        {
+          "nome": "GONCALVES & TORTOLA S/A",
+          "valor": 128630.36
+        },
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 111182.28
+        },
+        {
+          "nome": "MANUANE DE LIMA VOGAS - ME",
+          "valor": 100959.58
+        },
+        {
+          "nome": "GARCIA ATACADISTA LTDA",
+          "valor": 97607.18
+        },
+        {
+          "nome": "RIO DE JANEIRO REFRESCOS LTDA",
+          "valor": 92843.48
+        }
+      ]
+    },
+    "2026-06": {
+      "faturamento": 3139193.49,
+      "vendas": 3139193.49,
+      "compras": 3345339.75,
+      "vendas_por_uf": {
+        "RJ": 3138748.28,
+        "MG": 247.06,
+        "ES": 198.15
+      },
+      "top_clientes": [
+        {
+          "nome": "Consumidor Final",
+          "valor": 3084699.17
+        },
+        {
+          "nome": "UNIMED DE NOVA FRIBURGO SOCIEDADE COOP.",
+          "valor": 15131.85
+        },
+        {
+          "nome": "IGREJA PRESBITERIANA DE OLARIA",
+          "valor": 5158.04
+        },
+        {
+          "nome": "AKIK LINGERIE LTDA",
+          "valor": 4927.34
+        },
+        {
+          "nome": "AMORECO JH CONFECCOES DE ROUPAS INTIMAS LTDA",
+          "valor": 4564.56
+        },
+        {
+          "nome": "ASSOCIACAO EDUCACIONAL EVANGELICA",
+          "valor": 3645.45
+        },
+        {
+          "nome": "JBS S.A.",
+          "valor": 2509.28
+        },
+        {
+          "nome": "ECOLIMP FABRICACOES DE SABOES LTDA",
+          "valor": 2088.03
+        },
+        {
+          "nome": "ASSOCIACAO DOS DOENTES CRONICOS DO BRASIL",
+          "valor": 1584.34
+        },
+        {
+          "nome": "MITRA DIOCESANA DE NOVA FRIBURGO",
+          "valor": 1474.31
+        }
+      ],
+      "top_fornecedores": [
+        {
+          "nome": "DELEIT INDUSTRIA E COMERCIO DE LATICINIOS LTDA",
+          "valor": 217133.48
+        },
+        {
+          "nome": "COOP REGIONAL AGROPEC DE MACUCO LTDA",
+          "valor": 196888.86
+        },
+        {
+          "nome": "HV DISTRIBUIDORA LTDA",
+          "valor": 157877.58
+        },
+        {
+          "nome": "MANUANE DE LIMA VOGAS - ME",
+          "valor": 147933.2
+        },
+        {
+          "nome": "FRIGORIFICO CRUZEIRO DO SUL EIRELI",
+          "valor": 147416.86
+        },
+        {
+          "nome": "DISTRIBUIDORA DE FRIOS OURO LTDA",
+          "valor": 132424.26
+        },
+        {
+          "nome": "GARCIA ATACADISTA LTDA",
+          "valor": 128417.11
+        },
+        {
+          "nome": "GONCALVES & TORTOLA S/A",
+          "valor": 109701.98
+        },
+        {
+          "nome": "JBS S.A.",
+          "valor": 98984.0
+        },
+        {
+          "nome": "RIO BRANCO ALIMENTOS S/A",
+          "valor": 85503.11
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "servicos_2025": {
+    "cliente": {
+      "razao_social": "FRISEGUR SERVICOS E MONITORAMENTO ELETRONICO LTDA",
+      "cnpj": "30118621000135"
+    },
+    "data_referencia": "2025-12-31",
+    "contabil": {
+      "receita_bruta": {
+        "vendas_prazo": 0,
+        "vendas_vista": 1691838.7,
+        "total": 1691838.7
+      },
+      "deducoes": {
+        "icms": 0,
+        "cofins": 0,
+        "pis": 0,
+        "devolucao": 0,
+        "iss": 76921.78,
+        "simples_nacional": 117084.68,
+        "total": 194006.46
+      },
+      "receita_liquida": 1497832.24,
+      "cmv": 0,
+      "lucro_bruto": 1497832.24,
+      "despesas_administrativas": {
+        "HORAS EXTRAS": 34819.97,
+        "VALE TRANSPORTE": 37388.18,
+        "SALÁRIOS E ORDENADOS": 848210.08,
+        "PRÓ-LABORE": 18216.0,
+        "AJUDA DE CUSTO": 170691.96,
+        "13º SALÁRIO": 153423.99,
+        "INDENIZAÇÕES TRABALHISTAS": 481.96,
+        "FÉRIAS": 249050.68,
+        "AVISO PRÉVIO": 8279.35,
+        "INSS": 286441.99,
+        "FGTS": 120979.47,
+        "ADICIONAL NOTURNO": 33766.03,
+        "PMNF - TAXAS DIVERSAS": 242.29,
+        "SERVIÇOS CONTRATADOS": 24738.85,
+        "SERVIÇOS PRESTADOS POR TERCEIROS": 3799.8,
+        "total": 1990530.6
+      },
+      "despesas_gerais": {
+        "TELEFONE": 170.2,
+        "SEGUROS": 10033.72,
+        "OUTRAS DESPESAS": 1350.0,
+        "ALVARÁ": 649.05,
+        "total": 12202.97
+      },
+      "resultado_financeiro": 32306.93,
+      "lucro_liquido": -472594.4
+    }
+  },
+  "servicos_2026": {
+    "cliente": {
+      "razao_social": "FRISEGUR SERVICOS E MONITORAMENTO ELETRONICO LTDA",
+      "cnpj": "30118621000135"
+    },
+    "data_referencia": "2026-05-31",
+    "contabil": {
+      "receita_bruta": {
+        "vendas_prazo": 0,
+        "vendas_vista": 711578.09,
+        "total": 711578.09
+      },
+      "deducoes": {
+        "icms": 0,
+        "cofins": 0,
+        "pis": 0,
+        "devolucao": 0,
+        "iss": 33099.07,
+        "simples_nacional": 48710.7,
+        "total": 81809.77
+      },
+      "receita_liquida": 629768.32,
+      "cmv": 0,
+      "lucro_bruto": 629768.32,
+      "despesas_administrativas": {
+        "HORAS EXTRAS": 20907.07,
+        "VALE TRANSPORTE": 24583.56,
+        "SALÁRIOS E ORDENADOS": 402781.0,
+        "PRÓ-LABORE": 8105.0,
+        "AJUDA DE CUSTO": 78128.43,
+        "13º SALÁRIO": 40236.79,
+        "FÉRIAS": 59620.41,
+        "AVISO PRÉVIO": 11527.78,
+        "INSS": 117264.71,
+        "FGTS": 51011.76,
+        "ADICIONAL NOTURNO": 15973.48,
+        "SERVIÇOS CONTRATADOS": 1491.65,
+        "SERVIÇOS PRESTADOS POR TERCEIROS": 1655.0,
+        "total": 833286.64
+      },
+      "despesas_gerais": {
+        "ASSOCIACOES": 40.0,
+        "SEGUROS": 4200.12,
+        "OUTRAS DESPESAS": 537.0,
+        "ALVARÁ": 677.69,
+        "total": 5454.81
+      },
+      "resultado_financeiro": 18943.98,
+      "lucro_liquido": -190029.15
+    }
+  },
+  "vigilancia_2025": {
+    "cliente": {
+      "razao_social": "FRISEGUR VIGILANCIA E SEGURANÇA LTDA ",
+      "cnpj": "13563628000147"
+    },
+    "data_referencia": "2025-12-31",
+    "contabil": {
+      "receita_bruta": {
+        "vendas_prazo": 0,
+        "vendas_vista": 1962479.37,
+        "total": 1962479.37
+      },
+      "deducoes": {
+        "icms": 0,
+        "cofins": 0,
+        "pis": 0,
+        "devolucao": 0,
+        "iss": 94483.62,
+        "simples_nacional": 142128.26,
+        "total": 236611.88
+      },
+      "receita_liquida": 1725867.49,
+      "cmv": 0,
+      "lucro_bruto": 1725867.49,
+      "despesas_administrativas": {
+        "HORAS EXTRAS": 47874.89,
+        "VALE TRANSPORTE": 31973.48,
+        "SALÁRIOS E ORDENADOS": 693340.2,
+        "INSALUBRIDADE/PERICULOSIDADE": 19609.61,
+        "PRÓ-LABORE": 62280.0,
+        "ALIMENTAÇÃO EMPREGADOS": 13233.79,
+        "13º SALÁRIO": 70176.61,
+        "CURSOS DE APERFEIÇOAMENTOS": 4462.59,
+        "FÉRIAS": 1617.96,
+        "AVISO PRÉVIO": 15100.17,
+        "INSS": 196304.79,
+        "FGTS": 81843.99,
+        "ADICIONAL NOTURNO": 47733.6,
+        "TAXAS DIVERSAS": 6708.0,
+        "TAXA DE INCÊNDIO": 127.91,
+        "SERVIÇOS CONTRATADOS": 34846.83,
+        "SERVIÇOS PRESTADOS POR TERCEIROS": 6441.22,
+        "total": 1333675.64
+      },
+      "despesas_gerais": {
+        "DEPRECIAÇÕES E AMORTIZAÇÕES": 12812.99,
+        "ENERGIA ELÉTRICA": 2354.26,
+        "ÁGUA E ESGOTO": 4061.96,
+        "INTERNET E AFINS": 321.74,
+        "TELEFONE": 3484.33,
+        "ALIMENTAÇÃO": 133233.97,
+        "ASSOCIACOES": 287.89,
+        "SEGUROS": 6096.78,
+        "USO E CONSUMO": 43.8,
+        "OUTRAS DESPESAS": 7763.77,
+        "TAXAS MUNICIPAIS": 859.65,
+        "TAXAS FEDERAIS": 350.4,
+        "IPTU": 913.71,
+        "ALVARÁ": 649.05,
+        "total": 173234.3
+      },
+      "resultado_financeiro": 10738.03,
+      "lucro_liquido": 229695.58
+    }
+  },
+  "vigilancia_2026": {
+    "cliente": {
+      "razao_social": "FRISEGUR VIGILANCIA E SEGURANÇA LTDA ",
+      "cnpj": "13563628000147"
+    },
+    "data_referencia": "2026-05-31",
+    "contabil": {
+      "receita_bruta": {
+        "vendas_prazo": 0,
+        "vendas_vista": 867433.0,
+        "total": 867433.0
+      },
+      "deducoes": {
+        "icms": 0,
+        "cofins": 0,
+        "pis": 0,
+        "devolucao": 0,
+        "iss": 43336.63,
+        "simples_nacional": 51689.6,
+        "total": 95026.23
+      },
+      "receita_liquida": 772406.77,
+      "cmv": 0,
+      "lucro_bruto": 772406.77,
+      "despesas_administrativas": {
+        "HORAS EXTRAS": 24216.31,
+        "VALE TRANSPORTE": 11933.3,
+        "SALÁRIOS E ORDENADOS": 289968.36,
+        "INSALUBRIDADE/PERICULOSIDADE": 12168.46,
+        "PRÓ-LABORE": 27725.0,
+        "ALIMENTAÇÃO EMPREGADOS": 67446.25,
+        "13º SALÁRIO": 35875.97,
+        "CURSOS DE APERFEIÇOAMENTOS": 760.0,
+        "CONT. SINDICAL EMPREGADOS": 862.0,
+        "FÉRIAS": 129159.64,
+        "AVISO PRÉVIO": 3720.32,
+        "INSS": 113983.3,
+        "FGTS": 43383.63,
+        "ADICIONAL NOTURNO": 19737.01,
+        "SERVIÇOS CONTRATADOS": 14567.88,
+        "SERVIÇOS PRESTADOS POR TERCEIROS": 525.0,
+        "total": 796032.43
+      },
+      "despesas_gerais": {
+        "ENERGIA ELÉTRICA": 501.14,
+        "ÁGUA E ESGOTO": 1415.27,
+        "INTERNET E AFINS": 519.96,
+        "TELEFONE": 295.3,
+        "SEGUROS": 2012.04,
+        "OUTRAS DESPESAS": 3372.65,
+        "TAXAS MUNICIPAIS": 1098.1,
+        "TAXAS FEDERAIS": 43.8,
+        "ALVARÁ": 677.69,
+        "total": 9935.95
+      },
+      "resultado_financeiro": -1027.51,
+      "lucro_liquido": -34589.12
+    }
+  }
+}

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, memo, lazy, Suspense } from 'react';
 import JSZip from 'jszip';
 import {
@@ -34,6 +35,11 @@ import NcmReviewQueue, { useNcmDecisoes } from './NcmReviewQueue';
 import NcmGroupReview from './NcmGroupReview';
 import NbsReviewQueue, { useNbsDecisoes } from './NbsReviewQueue';
 import logoRN from './assets/logo-rn.png';
+import { computeDashboardStats } from './report/ingest/dashboardStats';
+import ReportContabil from './report/ReportContabil';
+import ReportDP from './report/ReportDP';
+import PeriodoSelector from './report/components/PeriodoSelector';
+import { usePeriodo, usePeriodosDisponiveis, useMultiplosPeriodos } from './report/useReportData';
 // XLSX carregado dinamicamente nos botões de exportar (evita ~300KB no bundle inicial)
 
 
@@ -853,106 +859,10 @@ const SimpleLineChart = ({ data, dataKey, labelKey, lineColor = '#3b82f6', areaC
 };
 
 // â"€â"€â"€ HOOK DASHBOARD â"€â"€â"€
-const useDashboard = (data, cnpjCache) => useMemo(() => {
-  const mapStats = {}, monthStats = {}, productStats = {}, clientStats = {}, cfopStats = {};
-  const regimeStats = { "Simples Nacional": 0, "Regime Normal": 0, "Desconhecido": 0 };
-  const dailyStats = {};
-  let totalRevenue = 0, totalQty = 0;
-  Object.keys(STATE_COORDINATES).forEach(uf => mapStats[uf] = { count: 0, value: 0 });
-  data.forEach(item => {
-    const safeVal = item.prodValTotal || 0, safeQty = item.prodQty || 0;
-    const uf = item.peerUF;
-    if (STATE_COORDINATES[uf]) { mapStats[uf].count += 1; mapStats[uf].value += safeVal; }
-    if (item.date) {
-      const d = new Date(item.date);
-      if (!isNaN(d)) {
-        const mk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-        if (!monthStats[mk]) monthStats[mk] = 0;
-        monthStats[mk] += safeVal;
-        const dk = item.date.split('T')[0];
-        if (!dailyStats[dk]) dailyStats[dk] = { date: dk, value: 0, qty: 0 };
-        dailyStats[dk].value += safeVal;
-        dailyStats[dk].qty += safeQty;
-      }
-    }
-    const pName = item.prodNome || 'Produto Desconhecido';
-    if (!productStats[pName]) productStats[pName] = { name: pName, qty: 0, revenue: 0, count: 0, unit: item.prodUnit };
-    productStats[pName].qty += safeQty;
-    productStats[pName].revenue += safeVal;
-    productStats[pName].count += 1;
-    const cCNPJ = cleanCNPJ(item.peerCNPJ) || '---';
-   const regime = cnpjCache[cCNPJ] || 'Desconhecido';
-// Consumidor Final (CPF) → trata como Simples Nacional
-const isConsumidorFinal = 
-  item.peerCNPJ === 'Consumidor Final' || 
-  !item.peerCNPJ ||
-  cCNPJ.length < 14 ||  // CPF tem 11 dígitos, CNPJ tem 14
-  cCNPJ === '---';
-
-const regimeEfetivo = isConsumidorFinal ? 'Simples Nacional' : regime;
-  if (regimeEfetivo === 'Simples Nacional') regimeStats['Simples Nacional'] += safeVal;
-else if (regimeEfetivo === 'Regime Normal') regimeStats['Regime Normal'] += safeVal;
-else regimeStats['Desconhecido'] += safeVal;
- if (!clientStats[cCNPJ]) clientStats[cCNPJ] = { name: item.peerNome || 'Desconhecido', cnpj: cCNPJ, uf: item.peerUF || 'EX', revenue: 0, count: 0, products: {}, regime: regimeEfetivo };
-    clientStats[cCNPJ].revenue += safeVal;
-    clientStats[cCNPJ].count += 1;
-  clientStats[cCNPJ].regime = regimeEfetivo;
-    if (!clientStats[cCNPJ].products[pName]) clientStats[cCNPJ].products[pName] = 0;
-    clientStats[cCNPJ].products[pName] += safeVal;
-    const cfop = item.prodCFOP || 'S/ CFOP';
-    if (!cfopStats[cfop]) cfopStats[cfop] = { code: cfop, revenue: 0, count: 0 };
-    cfopStats[cfop].revenue += safeVal;
-    cfopStats[cfop].count += 1;
-    totalRevenue += safeVal;
-    totalQty += safeQty;
-  });
-  const MAX_AFINIDADE = 25;
-  const pairCounts = {};
-  const productAffinities = {};
-  Object.values(clientStats).forEach(client => {
-    const prods = Object.entries(client.products)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, MAX_AFINIDADE)
-      .map(e => e[0])
-      .sort();
-    for (let i = 0; i < prods.length; i++) {
-      if (!productAffinities[prods[i]]) productAffinities[prods[i]] = {};
-      for (let j = i + 1; j < prods.length; j++) {
-        const pair = `${prods[i]} ||| ${prods[j]}`;
-        pairCounts[pair] = (pairCounts[pair] || 0) + 1;
-        productAffinities[prods[i]][prods[j]] = (productAffinities[prods[i]][prods[j]] || 0) + 1;
-        if (!productAffinities[prods[j]]) productAffinities[prods[j]] = {};
-        productAffinities[prods[j]][prods[i]] = (productAffinities[prods[j]][prods[i]] || 0) + 1;
-      }
-    }
-  });
-  const topPairs = Object.entries(pairCounts).filter(([_, count]) => count > 1).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([pair, count]) => ({ items: pair.split(' ||| '), count }));
-  const productsByRevenue = Object.values(productStats).sort((a,b) => b.revenue - a.revenue);
-  let accum = 0;
-  const abcProducts = productsByRevenue.map(p => {
-    accum += p.revenue;
-    const pct = (accum / totalRevenue) * 100;
-    const affinities = productAffinities[p.name] || {};
-    const topAffinities = Object.entries(affinities).sort((a,b) => b[1] - a[1]).slice(0, 2).map(entry => entry[0]);
-    return { ...p, classification: pct <= 80 ? 'A' : pct <= 95 ? 'B' : 'C', topAffinities };
-  });
-  const clientsByRevenue = Object.values(clientStats).map(c => {
-    let topProduct = 'N/A', maxVal = 0;
-    Object.entries(c.products).forEach(([n,v]) => { if (v > maxVal) { maxVal = v; topProduct = n; } });
-    return { ...c, topProduct };
-  }).sort((a,b) => b.revenue - a.revenue);
-  return {
-    mapStats, totalRevenue, totalQty: totalQty || 1,
-    productsByRevenue: abcProducts,
-    productsByQty: Object.values(productStats).sort((a,b) => b.qty - a.qty),
-    clientsByRevenue,
-    cfopsByRevenue: Object.values(cfopStats).sort((a,b) => b.revenue - a.revenue),
-    regimeStats,
-    uniqueProducts: Object.keys(productStats).length,
-    dailyChartData: Object.values(dailyStats).sort((a,b) => a.date.localeCompare(b.date)),
-    topPairs
-  };
-}, [data, cnpjCache]);
+// Agregação em si mora em report/ingest/dashboardStats.js (função pura,
+// compartilhada com a ingestão fiscal do Report Semestral) — aqui só embrulha
+// em useMemo pra manter a mesma API pros componentes que já consomem o hook.
+const useDashboard = (data, cnpjCache) => useMemo(() => computeDashboardStats(data, cnpjCache), [data, cnpjCache]);
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ABA: CRÉDITOS DE IBS E CBS
@@ -2165,6 +2075,16 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
   const dashSaidas = useDashboard(saidasFiltradas, cnpjCache);
   const dashEntradas = useDashboard(entradasFiltradas, cnpjCache);
 
+  const pagamentosSaidas = useMemo(() => {
+    const mapa = {};
+    saidasFiltradas.forEach(item => {
+      const forma = item.formaPagamento || 'Não Informado';
+      mapa[forma] = (mapa[forma] || 0) + (item.prodValTotal || 0);
+    });
+    return Object.entries(mapa).sort((a, b) => b[1] - a[1]);
+  }, [saidasFiltradas]);
+  const totalPagamentosSaidas = useMemo(() => pagamentosSaidas.reduce((s, [, v]) => s + v, 0), [pagamentosSaidas]);
+
   const maxMapVal = useMemo(() =>
     Math.max(...Object.values(dashSaidas.mapStats).map(d => d.value), 1),
     [dashSaidas]
@@ -2307,8 +2227,8 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
         </div>
       </div>
 
-      {/* Produtos mais vendidos + Maiores fornecedores */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Produtos mais vendidos + Itens mais comprados + Maiores fornecedores */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
@@ -2332,6 +2252,29 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
             ))}
             {dashSaidas.productsByRevenue.length === 0 && (
               <p className="text-sm text-slate-400 text-center py-6">Nenhum produto nas saídas.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
+            <ShoppingCart className="w-5 h-5 text-emerald-600"/> Itens Mais Comprados
+          </h3>
+          <div className="space-y-1">
+            {dashEntradas.productsByRevenue.slice(0,12).map((p, i) => (
+              <div key={i} className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-slate-300 text-xs font-bold w-6 text-right flex-shrink-0">{i+1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-800 truncate" title={p.name}>{p.name}</div>
+                  <div className="text-[10px] text-slate-400">{p.qty.toFixed(0)} un.</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-sm font-bold text-slate-700">R$ {p.revenue.toLocaleString('pt-BR',{notation:'compact'})}</div>
+                </div>
+              </div>
+            ))}
+            {dashEntradas.productsByRevenue.length === 0 && (
+              <p className="text-sm text-slate-400 text-center py-6">Nenhum item nas entradas.</p>
             )}
           </div>
         </div>
@@ -2364,6 +2307,75 @@ const VisaoGeralTab = memo(({ saidasData, entradasData, cnpjCache }) => {
           </div>
         </div>
 
+      </div>
+
+      {/* CFOPs de saída e entrada */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
+            <FileText className="w-5 h-5 text-[#D9C14A]"/> CFOPs — Saídas
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {dashSaidas.cfopsByRevenue.map((c, i) => (
+              <div key={i} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <div className="flex justify-between items-start mb-1.5">
+                  <span className="bg-gray-100 text-[#222222] font-bold px-2 py-0.5 rounded text-xs">{c.code}</span>
+                  <span className="text-[10px] text-slate-400">{c.count} ops</span>
+                </div>
+                <div className="text-sm font-bold text-slate-800">R$ {c.revenue.toLocaleString('pt-BR',{notation:'compact'})}</div>
+              </div>
+            ))}
+            {dashSaidas.cfopsByRevenue.length === 0 && (
+              <p className="text-sm text-slate-400 text-center py-6 col-span-2">Nenhum CFOP nas saídas.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
+            <FileText className="w-5 h-5 text-emerald-600"/> CFOPs — Entradas
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {dashEntradas.cfopsByRevenue.map((c, i) => (
+              <div key={i} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <div className="flex justify-between items-start mb-1.5">
+                  <span className="bg-gray-100 text-[#222222] font-bold px-2 py-0.5 rounded text-xs">{c.code}</span>
+                  <span className="text-[10px] text-slate-400">{c.count} ops</span>
+                </div>
+                <div className="text-sm font-bold text-slate-800">R$ {c.revenue.toLocaleString('pt-BR',{notation:'compact'})}</div>
+              </div>
+            ))}
+            {dashEntradas.cfopsByRevenue.length === 0 && (
+              <p className="text-sm text-slate-400 text-center py-6 col-span-2">Nenhum CFOP nas entradas.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Forma de pagamento — só nas saídas, é onde o XML costuma trazer o dado */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h3 className="font-bold text-[#222222] flex items-center gap-2 mb-4 text-base border-b border-slate-100 pb-3">
+          <DollarSign className="w-5 h-5 text-[#D9C14A]"/> Formas de Pagamento — Saídas
+        </h3>
+        <div className="space-y-3">
+          {pagamentosSaidas.map(([forma, valor], i) => {
+            const pct = totalPagamentosSaidas > 0 ? (valor / totalPagamentosSaidas) * 100 : 0;
+            return (
+              <div key={i}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-semibold text-slate-600">{forma}</span>
+                  <span className="font-bold text-slate-700">R$ {valor.toLocaleString('pt-BR',{notation:'compact'})} · {pct.toFixed(0)}%</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2">
+                  <div className="bg-[#D9C14A] h-2 rounded-full" style={{ width: `${pct}%` }}/>
+                </div>
+              </div>
+            );
+          })}
+          {pagamentosSaidas.length === 0 && (
+            <p className="text-sm text-slate-400 text-center py-6">Nenhuma forma de pagamento registrada nas saídas.</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -3007,26 +3019,38 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCa
               const wb = XLSX.utils.book_new();
               const fBRLn = v => Number((v||0).toFixed(2));
               const comp = selectedCompetence === 'TODAS' ? 'Todas' : selectedCompetence;
+              const amostraProdutos = (items) => {
+                const nomes = [...new Set(items.map(it => it.xProd).filter(Boolean))];
+                const amostra = nomes.slice(0, 3).join(' | ');
+                return nomes.length > 3 ? `${amostra} … (+${nomes.length - 3})` : amostra;
+              };
 
-              // Aba 1 — NCMs corretas (DIRETO + CONFIRMADO)
-              const corretas = itens.map(i => ({
-                'NCM': i.ncmDisplay,
-                'Produto': i.nome,
-                'Anexo': i.reduction?.anexo || '',
-                'Tipo de Benefício': i.reduction?.reducao === 100 ? 'Alíquota Zero' : i.reduction?.reducao > 0 ? `Redução ${i.reduction.reducao}%` : 'Sem redução',
-                'Substância / Critério': i.reduction?.desc || '',
-                'Status Conferência': confirmacoes[i.ncm] === 'ok' ? 'Confirmado' : confirmacoes[i.ncm] === 'rejected' ? 'Rejeitado' : 'Pendente',
-                'Faturamento (R$)': fBRLn(i.faturamento),
-                'Qtd Itens': i.count,
-                'Competência': comp,
-                'Fluxo': flow === 'saidas' ? 'Saídas' : 'Entradas',
-              }));
-              const ws1 = XLSX.utils.json_to_sheet(corretas.length ? corretas : [{ 'Info': 'Nenhuma NCM correta encontrada' }]);
-              ws1['!cols'] = [{wch:12},{wch:40},{wch:28},{wch:20},{wch:40},{wch:16},{wch:18},{wch:10},{wch:12},{wch:10}];
-              XLSX.utils.book_append_sheet(wb, ws1, 'NCMs Corretas');
+              // Aba 1 — Revisão em Lote: cada NCM pendente com suas alternativas possíveis
+              const lote = [];
+              gruposLote.forEach(g => {
+                const base = {
+                  'NCM': g.ncm,
+                  'Produtos (amostra)': amostraProdutos(g.items),
+                  'Qtd Produtos Distintos': g.distinctCount,
+                  'Faturamento Total (R$)': fBRLn(g.totalFaturamento),
+                };
+                if (g.candidates && g.candidates.length > 0) {
+                  g.candidates.forEach(c => lote.push({
+                    ...base,
+                    'Alternativa': c.sub?.desc || '',
+                    'Redução': c.sub?.reducao === 100 ? 'Alíquota Zero' : c.sub?.reducao > 0 ? `${c.sub.reducao}%` : 'Sem redução',
+                    'Anexo': c.sub?.anexo || '',
+                  }));
+                } else {
+                  lote.push({ ...base, 'Alternativa': '', 'Redução': '', 'Anexo': '' });
+                }
+              });
+              const ws1 = XLSX.utils.json_to_sheet(lote.length ? lote : [{ 'Info': 'Nenhum NCM pendente de revisão em lote' }]);
+              ws1['!cols'] = [{wch:12},{wch:50},{wch:14},{wch:18},{wch:40},{wch:14},{wch:28}];
+              XLSX.utils.book_append_sheet(wb, ws1, 'Revisão em Lote');
 
-              // Aba 2 — NCMs com divergência (AMBIGUO + REJEITADO)
-              const divergentes = revisaoItems.map(i => ({
+              // Aba 2 — Análise Detalhada: cada produto com as possibilidades de NCM
+              const detalhada = revisaoItems.map(i => ({
                 'NCM': i.ncm,
                 'Produto': i.xProd,
                 'Status': i.status,
@@ -3036,9 +3060,37 @@ const ConferenciaNCMTab = memo(({ saidasData, entradasData, cnpj, usuario, getCa
                 'Competência': comp,
                 'Fluxo': flow === 'saidas' ? 'Saídas' : 'Entradas',
               }));
-              const ws2 = XLSX.utils.json_to_sheet(divergentes.length ? divergentes : [{ 'Info': 'Nenhuma divergência encontrada' }]);
+              const ws2 = XLSX.utils.json_to_sheet(detalhada.length ? detalhada : [{ 'Info': 'Nenhuma divergência encontrada' }]);
               ws2['!cols'] = [{wch:12},{wch:40},{wch:12},{wch:80},{wch:18},{wch:10},{wch:12},{wch:10}];
-              XLSX.utils.book_append_sheet(wb, ws2, 'NCMs com Divergência');
+              XLSX.utils.book_append_sheet(wb, ws2, 'Análise Detalhada');
+
+              // Aba 3 — Resultado: o enquadramento que já foi confirmado manualmente
+              // (preenchido) mais o que ainda está pendente (linha fica vazia nas
+              // colunas de resultado, para a pessoa preencher/validar depois).
+              const decididos = itens.filter(i => i.formaConfirmacao === 'manual').map(i => ({
+                'NCM': i.ncmDisplay,
+                'Produto': i.nome,
+                'Resultado (Substância / Enquadramento)': i.substancia || '',
+                'Fundamentação': i.fundamentacao || '',
+                'Redução Aplicada': i.reduction?.reducao === 100 ? 'Alíquota Zero' : i.reduction?.reducao > 0 ? `${i.reduction.reducao}%` : 'Sem redução',
+                'Faturamento (R$)': fBRLn(i.faturamento),
+                'Qtd Itens': i.count,
+                'Status': 'Confirmado',
+              }));
+              const pendentesResultado = revisaoItems.map(i => ({
+                'NCM': i.ncm,
+                'Produto': i.xProd,
+                'Resultado (Substância / Enquadramento)': '',
+                'Fundamentação': '',
+                'Redução Aplicada': '',
+                'Faturamento (R$)': fBRLn(i.faturamento),
+                'Qtd Itens': i.count,
+                'Status': 'Pendente',
+              }));
+              const resultado = [...decididos, ...pendentesResultado].sort((a, b) => b['Faturamento (R$)'] - a['Faturamento (R$)']);
+              const ws3 = XLSX.utils.json_to_sheet(resultado.length ? resultado : [{ 'Info': 'Nenhum NCM passou pela revisão ainda' }]);
+              ws3['!cols'] = [{wch:12},{wch:40},{wch:40},{wch:40},{wch:16},{wch:16},{wch:10},{wch:12}];
+              XLSX.utils.book_append_sheet(wb, ws3, 'Resultado');
 
               XLSX.writeFile(wb, `conferencia-ncm-${flow}-${comp}.xlsx`);
             }}
@@ -5291,9 +5343,26 @@ const CFOPS_ST = new Set([
 // COMPONENTE PRINCIPAL
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const TaxAnalyzer = () => {
- const [currentUser, setCurrentUser] = useState(null);
+ const [currentUser, setCurrentUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rn_auth_session_v1')) || null; } catch (_) { return null; }
+  });
   const { getCached: getCachedNcmDecisao, saveDecision: saveNcmDecisao, deleteDecision: deleteNcmDecisao, clearAllDecisions: clearAllNcmDecisoes, loading: loadingNcmDecisoes } = useNcmDecisoes(currentUser?.licenseCNPJ);
   const { getCached: getCachedNbsDecisao, saveDecision: saveNbsDecisao, loading: loadingNbsDecisoes } = useNbsDecisoes(currentUser?.licenseCNPJ);
+  // Dados do Report Semestral (Contábil/DP) por período — mesmos hooks usados
+  // em report/ReportPage.jsx, aqui reaproveitados pros módulos Contábil e DP
+  // dentro do app principal. Cai em mock automaticamente se o Firestore não
+  // tiver documento pra esse CNPJ/período (ver useReportData.js).
+  const [periodoSelecionado, setPeriodoSelecionado] = useState(null);
+  const { periodos: periodosDisponiveis, loading: loadingPeriodos } = usePeriodosDisponiveis(currentUser?.licenseCNPJ);
+  const periodoAtualId = periodoSelecionado || periodosDisponiveis[0];
+  const { data: periodoData, loading: loadingPeriodoData } = usePeriodo(currentUser?.licenseCNPJ, periodoAtualId);
+  // usePeriodo nunca sai do loading=true se periodoId nunca chega a existir
+  // (efeito interno dá return antes de setLoading(false) — ver useReportData.js).
+  // Por isso só contamos loadingPeriodoData quando já existe um período pra buscar;
+  // sem isso, um CNPJ sem nenhum período (real ou mock) ficava girando pra sempre.
+  const loadingReportPeriodo = loadingPeriodos || (!!periodoAtualId && loadingPeriodoData);
+  const semPeriodoParaCnpj = !loadingPeriodos && periodosDisponiveis.length === 0;
+  const { periodosData: periodosDataContabil } = useMultiplosPeriodos(currentUser?.licenseCNPJ, periodosDisponiveis);
   // Confirmação/rejeição manual de NCM na Conferência — levantado para a raiz para
   // que a rejeição afete o Confronto IBS/CBS e demais telas, não só a própria aba.
   const [ncmConfirmacoes, setNcmConfirmacoes] = useState(() => {
@@ -5306,7 +5375,8 @@ const TaxAnalyzer = () => {
   };
   const [showSplash, setShowSplash] = useState(false);
   const [loginForm, setLoginForm] = useState({ cnpj: '', regime: 'simples', aliquota: '' });
-  const [activeModule, setActiveModule] = useState('visaogeral');
+  const [activeModule, setActiveModule] = useState('fiscal');
+  const [reformaSubTab, setReformaSubTab] = useState('impacto');
   const [operacoesFlow, setOperacoesFlow] = useState('saidas');
   const [operacoesTab, setOperacoesTab] = useState('lista');
   const [reformaFlow, setReformaFlow] = useState('saidas');
@@ -5315,7 +5385,9 @@ const TaxAnalyzer = () => {
   const [uploadError, setUploadError] = useState(null);
   const [globalMargin, setGlobalMargin] = useState(20);
   const [selectedUF, setSelectedUF] = useState('RJ');
-  const [simplesRate, setSimplesRate] = useState(11.44);
+  const [simplesRate, setSimplesRate] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rn_auth_session_v1'))?.simplesRate ?? 11.44; } catch (_) { return 11.44; }
+  });
   const [expandedItem, setExpandedItem] = useState(null);
   const [saidasData, setSaidasData] = useState([]);
   const [entradasData, setEntradasData] = useState([]);
@@ -5324,7 +5396,9 @@ const TaxAnalyzer = () => {
   const [creditosManuais, setCreditosManuais] = useState([]);
   const [reformYear, setReformYear] = useState('2027');
   const [modoApresentacao, setModoApresentacao] = useState(false);
-  const [empresaRegime, setEmpresaRegime] = useState('simples');
+  const [empresaRegime, setEmpresaRegime] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rn_auth_session_v1'))?.regime ?? 'simples'; } catch (_) { return 'simples'; }
+  });
   const [taxaOculta, setTaxaOculta] = useState(0);
   const [loginError, setLoginError] = useState('');
   const [showRegister, setShowRegister] = useState(false);
@@ -5401,12 +5475,12 @@ const entradasFaturamentoFiltradas = useMemo(() =>
   }), []);
 
 useEffect(() => {
-  if (activeModule === 'apuracao') {
+  if (activeModule === 'reforma' && reformaSubTab === 'apuracao') {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) setCreditosManuais(JSON.parse(saved));
     else setCreditosManuais([]);
   }
-}, [activeModule, apuracaoSubTab]);
+}, [activeModule, reformaSubTab, apuracaoSubTab]);
 
   const validateCNPJ = (xmlDoc) => {
     if (!currentUser) return { valid: false, message: '' };
@@ -6043,10 +6117,15 @@ const handleEntrada = (e) => {
   if (loginForm.regime === 'simples' && (!loginForm.aliquota || isNaN(parseFloat(loginForm.aliquota)))) {
     setLoginError('Informe a alíquota do Simples Nacional.'); return;
   }
-  setCurrentUser({ name: 'Empresa', licenseCNPJ: cnpjLimpo, active: true });
+  const user = { name: 'Empresa', licenseCNPJ: cnpjLimpo, active: true };
+  const rate = loginForm.regime === 'simples' ? parseFloat(loginForm.aliquota) : 0;
+  setCurrentUser(user);
   setEmpresaRegime(loginForm.regime);
-  setSimplesRate(loginForm.regime === 'simples' ? parseFloat(loginForm.aliquota) : 0);
+  setSimplesRate(rate);
   setLoginError('');
+  try {
+    localStorage.setItem('rn_auth_session_v1', JSON.stringify({ ...user, regime: loginForm.regime, simplesRate: rate }));
+  } catch (_) {}
 };
 if (!currentUser) {
   return (
@@ -6148,6 +6227,43 @@ if (!currentUser) {
   );
 }
 
+
+// Relatório de regimes tributários de clientes e fornecedores — junta todo mundo
+// que já apareceu em alguma nota (saída = cliente, entrada = fornecedor) com o
+// regime já consultado em cnpjCache (ou "Não consultado" se ainda não buscou).
+const exportarRelatorioRegimes = async () => {
+  const XLSX = await import('xlsx');
+  const mapa = {};
+  const addPeer = (item, tipo) => {
+    const cnpj = cleanCNPJ(item.peerCNPJ);
+    if (!cnpj || cnpj.length !== 14 || cnpj === '00000000000000') return;
+    if (!mapa[cnpj]) mapa[cnpj] = { cnpj, nome: item.peerNome || '', uf: item.peerUF || '', cliente: false, fornecedor: false, faturamentoCliente: 0, faturamentoFornecedor: 0 };
+    if (tipo === 'cliente') { mapa[cnpj].cliente = true; mapa[cnpj].faturamentoCliente += item.prodValTotal || 0; }
+    else { mapa[cnpj].fornecedor = true; mapa[cnpj].faturamentoFornecedor += item.prodValTotal || 0; }
+    if (item.peerNome) mapa[cnpj].nome = item.peerNome;
+    if (item.peerUF) mapa[cnpj].uf = item.peerUF;
+  };
+  saidasData.forEach(item => addPeer(item, 'cliente'));
+  entradasData.forEach(item => addPeer(item, 'fornecedor'));
+
+  const linhas = Object.values(mapa)
+    .sort((a, b) => (b.faturamentoCliente + b.faturamentoFornecedor) - (a.faturamentoCliente + a.faturamentoFornecedor))
+    .map(p => ({
+      'CNPJ': fmtCNPJ(p.cnpj),
+      'Nome': p.nome,
+      'UF': p.uf,
+      'Tipo': p.cliente && p.fornecedor ? 'Cliente e Fornecedor' : p.cliente ? 'Cliente' : 'Fornecedor',
+      'Regime Tributário': cnpjCache[p.cnpj] || 'Não consultado',
+      'Faturamento como Cliente (R$)': Number((p.faturamentoCliente || 0).toFixed(2)),
+      'Compras como Fornecedor (R$)': Number((p.faturamentoFornecedor || 0).toFixed(2)),
+    }));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(linhas.length ? linhas : [{ 'Info': 'Nenhum cliente/fornecedor encontrado' }]);
+  ws['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 6 }, { wch: 22 }, { wch: 20 }, { wch: 24 }, { wch: 24 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Regimes');
+  XLSX.writeFile(wb, `regimes-clientes-fornecedores-${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
 
 const exportarRelatorioFiscal = async () => {
   const XLSX = await import('xlsx');
@@ -6449,10 +6565,12 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
             <img src={logoRN} alt="RN Contabilidade" className="h-11 w-auto rounded"/>
             <div className="w-px h-6 bg-white/20 hidden md:block"/>
             <div className="hidden md:block">
-              <span className="text-gray-400 text-xs font-medium">Sistema Tributário</span>
+              <span className="text-white text-sm font-bold tracking-tight">
+                {periodoData?.cliente?.razao_social || currentUser.name}
+              </span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"/>
-                <span className="text-gray-500 text-[10px]">{currentUser.name}</span>
+                <span className="text-gray-500 text-[10px]">Sistema Tributário · {currentUser.licenseCNPJ}</span>
               </div>
             </div>
           </div>
@@ -6466,12 +6584,20 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
               <span className="hidden md:inline">Exportar</span>
             </button>
             <button
+              onClick={exportarRelatorioRegimes}
+              disabled={saidasData.length === 0 && entradasData.length === 0}
+              title="Exportar regimes tributários de clientes e fornecedores"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors">
+              <Users className="w-4 h-4"/>
+              <span className="hidden md:inline">Regimes</span>
+            </button>
+            <button
               onClick={() => { setShowImportModal(true); setImportResult(null); setImportProgress(0); }}
               className="flex items-center gap-2 bg-[#D9C14A] hover:bg-[#B8A030] text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors">
               <Upload className="w-4 h-4"/>
               <span className="hidden md:inline">Importar XMLs</span>
             </button>
-            <button onClick={() => { setCurrentUser(null); setSaidasData([]); setEntradasData([]); setAnalysisData(null); setLoginForm({username:'',password:''}); }}
+            <button onClick={() => { setCurrentUser(null); setSaidasData([]); setEntradasData([]); setAnalysisData(null); setLoginForm({username:'',password:''}); try { localStorage.removeItem('rn_auth_session_v1'); } catch (_) {} }}
               className="flex items-center gap-2 text-gray-400 hover:text-red-400 font-bold text-xs px-3 py-2 hover:bg-white/5 rounded-lg transition-colors">
               <LogOut className="w-4 h-4"/>
             </button>
@@ -6479,23 +6605,28 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6 space-y-4">
-        <div className="flex gap-2 flex-wrap">
-  {[
-    { id: 'visaogeral', label: 'Visão Geral', icon: Activity },
-    { id: 'reforma', label: 'Reforma Tributária', icon: FileText },
-    { id: 'apuracao', label: 'Confronto IBS/CBS', icon: BarChart3 },
-    { id: 'simples', label: 'Simples Nacional', icon: Percent },
-    { id: 'precificacao', label: 'Precificação', icon: Tag },
-  ].map(({ id, label, icon: Icon, badge }) => (
-            <button key={id} onClick={() => setActiveModule(id)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all border shadow-sm ${activeModule===id ? 'bg-[#222222] text-white border-transparent shadow-lg' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-              <Icon className={`w-4 h-4 ${activeModule===id ? 'text-[#D9C14A]' : ''}`}/>
-              {label}
-              {badge !== 0 && <span className={`ml-1 px-2 py-0.5 text-[10px] rounded-full font-bold ${activeModule===id ? 'bg-white text-[#222222]' : 'bg-slate-100 text-slate-600'}`}>{badge}</span>}
-            </button>
-          ))}
-        </div>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6 flex flex-col md:flex-row gap-5 items-start">
+        {/* ── módulos na lateral (substitui as antigas abas horizontais) ── */}
+        <aside className="w-full md:w-56 md:shrink-0 md:sticky md:top-[92px]">
+          <nav className="flex flex-row md:flex-col gap-0.5 bg-white border border-slate-200 rounded-xl p-1.5 overflow-x-auto shadow-sm">
+            {[
+              { id: 'fiscal', label: 'Fiscal', icon: Activity },
+              { id: 'reforma', label: 'Reforma Tributária', icon: FileText },
+              { id: 'contabil', label: 'Contábil', icon: Calculator },
+              { id: 'dp', label: 'DP', icon: Users },
+              { id: 'financeiro', label: 'Financeiro', icon: Tag },
+            ].map(({ id, label, icon: Icon }) => (
+              <button key={id} onClick={() => setActiveModule(id)}
+                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${
+                  activeModule === id ? 'bg-[#222222] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                }`}>
+                <Icon className={`w-4 h-4 shrink-0 ${activeModule === id ? 'text-[#D9C14A]' : 'text-slate-400'}`}/> {label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <div className="flex-1 min-w-0 space-y-4">
 
         {uploadError && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-sm flex items-start gap-3">
@@ -6660,8 +6791,8 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
         )}
 
 
-{/* MÃ"DULO: VISÃƒO GERAL */}
-        {activeModule === 'visaogeral' && (
+{/* MÓDULO: FISCAL (dados extraídos do XML: saídas, entradas, mapa, produtos, fornecedores) */}
+        {activeModule === 'fiscal' && (
           <VisaoGeralTab
             saidasData={saidasData}
             entradasData={entradasData}
@@ -6669,8 +6800,23 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
           />
         )}
 
-{/* MÃ"DULO: REFORMA */}
+{/* MÓDULO: REFORMA TRIBUTÁRIA (Impacto da Reforma / Confronto IBS-CBS / Simples Nacional, aninhados) */}
         {activeModule === 'reforma' && (
+          <div className="space-y-4">
+            <div className="flex gap-1 overflow-x-auto pb-1">
+              {[
+                { id: 'impacto', label: 'Impacto da Reforma' },
+                { id: 'apuracao', label: 'Confronto IBS/CBS' },
+                { id: 'simples', label: 'Simples Nacional' },
+              ].map(({ id, label }) => (
+                <button key={id} onClick={() => setReformaSubTab(id)}
+                  className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition-colors ${reformaSubTab === id ? 'bg-[#222222] text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+        {reformaSubTab === 'impacto' && (
           <div>
             <div className="flex items-center gap-3 mb-5">
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-1 flex gap-1">
@@ -6714,10 +6860,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
 />
           </div>
         )}
-
-
-      {/* MÃ"DULO: APURAÇÃƒO */}
-        {activeModule === 'apuracao' && (
+        {reformaSubTab === 'apuracao' && (
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
               <h2 className="text-2xl font-bold text-[#222222] flex items-center gap-2"><BarChart3 className="w-6 h-6 text-[#D9C14A]"/> Apuração: Confronto de Débitos e Créditos</h2>
@@ -6794,7 +6937,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
         )}
 
         {/* MÃ"DULO: SIMPLES NACIONAL */}
-    {activeModule === 'simples' && (
+    {reformaSubTab === 'simples' && (
   <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
       <h2 className="text-2xl font-bold text-[#222222] flex items-center gap-2">
@@ -6843,9 +6986,47 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
 />
           </div>
         )}
+          </div>
+        )}
 
-        {/* MÃ"DULO: PRECIFICAÃ‡ÃƒO */}
-        {activeModule === 'precificacao' && (
+{/* MÓDULO: CONTÁBIL */}
+        {activeModule === 'contabil' && (
+          <div className="space-y-4">
+            {loadingReportPeriodo ? (
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm font-bold text-slate-400">Carregando dados contábeis…</div>
+            ) : semPeriodoParaCnpj ? (
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm font-bold text-slate-400">Nenhum período contábil disponível para este CNPJ ainda.</div>
+            ) : !periodoData ? (
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm font-bold text-slate-400">Nenhum dado encontrado para este CNPJ/período.</div>
+            ) : (
+              <>
+                <PeriodoSelector periodos={periodosDisponiveis} periodoSelecionado={periodoAtualId} onChange={setPeriodoSelecionado} />
+                <ReportContabil data={periodoData} periodosData={periodosDataContabil} periodoAtualId={periodoAtualId} />
+              </>
+            )}
+          </div>
+        )}
+
+{/* MÓDULO: DP */}
+        {activeModule === 'dp' && (
+          <div className="space-y-4">
+            {loadingReportPeriodo ? (
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm font-bold text-slate-400">Carregando dados de DP…</div>
+            ) : semPeriodoParaCnpj ? (
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm font-bold text-slate-400">Nenhum período de DP disponível para este CNPJ ainda.</div>
+            ) : !periodoData ? (
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm font-bold text-slate-400">Nenhum dado encontrado para este CNPJ/período.</div>
+            ) : (
+              <>
+                <PeriodoSelector periodos={periodosDisponiveis} periodoSelecionado={periodoAtualId} onChange={setPeriodoSelecionado} />
+                <ReportDP data={periodoData} />
+              </>
+            )}
+          </div>
+        )}
+
+        {/* MÓDULO: FINANCEIRO (Precificação) */}
+        {activeModule === 'financeiro' && (
           <PrecificacaoTab
             saidasData={saidasFiltradas}
             empresaRegime={empresaRegime}
@@ -6992,6 +7173,7 @@ a2.push(['DAS do Segmento', fBRL(dasDentro), fBRL(dasFora),'']);
   </div>
       )}
 
+        </div>
     </div>
   </div>
 );
